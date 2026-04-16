@@ -4,6 +4,18 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Title>TestFramework Local IO</Title>
+    <Version>0.1.0</Version>
+    <Authors>DeadMoon0</Authors>
+    <Product>TestFramework</Product>
+    <Description>Manage your Local IO with a Framework Timeline.</Description>
+    <PackageProjectUrl>https://github.com/DeadMoon0/TestFramework-LocalIO</PackageProjectUrl>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/DeadMoon0/TestFramework-LocalIO.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Test;UnitTest;IntegrationTest,Framework;Fluent;Timeline;Local;IO</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -15,7 +27,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\Modules\TestFramework-Common\Assets\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="TestFramework.Core" Version="0.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
