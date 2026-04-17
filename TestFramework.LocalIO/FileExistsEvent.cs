@@ -5,7 +5,7 @@ using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Variables;
 
-namespace TestFrameworkLocalIO;
+namespace TestFramework.LocalIO;
 
 public class FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay = null) : SequentialEvent<FileExistsEvent, object?>
 {

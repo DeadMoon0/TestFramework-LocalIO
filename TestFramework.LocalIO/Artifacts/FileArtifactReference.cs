@@ -3,7 +3,7 @@ using TestFramework.Core.Logging;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Variables;
 
-namespace TestFrameworkLocalIO.Artifacts;
+namespace TestFramework.LocalIO.Artifacts;
 
 public class FileArtifactReference : ArtifactReference<FileArtifactReference, FileArtifactDescriber, FileArtifactData>
 {

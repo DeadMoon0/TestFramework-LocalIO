@@ -1,9 +1,9 @@
 ﻿using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Variables;
-using TestFrameworkLocalIO.Artifacts;
+using TestFramework.LocalIO.Artifacts;
 
-namespace TestFrameworkLocalIO;
+namespace TestFramework.LocalIO;
 
 public class FileArtifactFolderFinder(VariableReference<string> folderPath) : ArtifactFinder<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
 {
