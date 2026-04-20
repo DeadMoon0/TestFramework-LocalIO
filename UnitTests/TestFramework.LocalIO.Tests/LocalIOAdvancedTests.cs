@@ -1,12 +1,10 @@
-using TestFramework.Core;
 using TestFramework.Core.Artifacts;
-using TestFramework.Core.Debugger;
-using TestFramework.Core.Logging;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
 using TestFramework.Core.Variables;
 using TestFrameworkLocalIO;
 using TestFrameworkLocalIO.Artifacts;
+using LocalIOFacade = TestFrameworkLocalIO.LocalIO;
 
 namespace TestFramework.LocalIO.Tests;
 
@@ -15,19 +13,23 @@ public class LocalIOAdvancedTests
     [Fact]
     public async Task CmdTrigger_Execute_UsesConfiguredWorkingDirectory()
     {
-        RuntimeContext runtime = new();
         string tempDir = CreateTempDirectory();
 
         try
         {
             File.WriteAllText(Path.Combine(tempDir, "marker.txt"), "ready");
-            runtime.VariableStore.SetVariable("cmd", "if exist marker.txt (exit /b 0) else (exit /b 1)");
-            runtime.VariableStore.SetVariable("cwd", tempDir);
-            CmdTrigger trigger = new(Var.Ref<string>("cmd"), Var.Ref<string>("cwd"));
+            Timeline timeline = Timeline.Create()
+                .Trigger(LocalIOFacade.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
+                .Name("cmd")
+                .Build();
 
-            int exitCode = await trigger.Execute(runtime.ServiceProvider, runtime.VariableStore, runtime.ArtifactStore, runtime.Logger, CancellationToken.None);
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("cmd", "if exist marker.txt (exit /b 0) else (exit /b 1)")
+                .AddVariable("cwd", tempDir)
+                .RunAsync();
 
-            Assert.Equal(0, exitCode);
+            run.EnsureRanToCompletion();
+            Assert.Equal(0, Assert.IsType<int>(run.Step("cmd").LastResult.Result));
         }
         finally
         {
@@ -38,23 +40,24 @@ public class LocalIOAdvancedTests
     [Fact]
     public async Task FileArtifactFolderFinder_FindAsync_ReturnsAFileReferenceWhenFolderContainsFiles()
     {
-        RuntimeContext runtime = new();
         string tempDir = CreateTempDirectory();
         string filePath = Path.Combine(tempDir, "a.txt");
 
         try
         {
             File.WriteAllText(filePath, "hello");
-            runtime.VariableStore.SetVariable("folder", tempDir);
-            FileArtifactFolderFinder finder = new(Var.Ref<string>("folder"));
+            Timeline timeline = Timeline.Create()
+                .FindArtifact("file", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .Build();
 
-            ArtifactFinderResult? result = await finder.FindAsync(runtime.ServiceProvider, runtime.VariableStore, runtime.Logger, CancellationToken.None);
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
 
-            Assert.NotNull(result);
-            ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference> resolved =
-                await ((FileArtifactReference)result!.Reference).ResolveToDataAsync(runtime.ServiceProvider, ArtifactVersionIdentifier.Default, runtime.VariableStore, runtime.Logger);
-            Assert.True(resolved.Found);
-            Assert.Equal("hello", resolved.Data!.DataAsUtf8String);
+            run.EnsureRanToCompletion();
+            ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> artifact = Assert.Single(
+                run.ArtifactStore.GetAll().Cast<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>>());
+            Assert.Equal("hello", artifact.Last.DataAsUtf8String);
         }
         finally
         {
@@ -65,19 +68,27 @@ public class LocalIOAdvancedTests
     [Fact]
     public async Task FileArtifactFolderFinder_FindMultiAsync_ReturnsAllFilesInFolder()
     {
-        RuntimeContext runtime = new();
         string tempDir = CreateTempDirectory();
 
         try
         {
             File.WriteAllText(Path.Combine(tempDir, "a.txt"), "a");
             File.WriteAllText(Path.Combine(tempDir, "b.txt"), "b");
-            runtime.VariableStore.SetVariable("folder", tempDir);
-            FileArtifactFolderFinder finder = new(Var.Ref<string>("folder"));
+            Timeline timeline = Timeline.Create()
+                .FindArtifactMulti(["file0", "file1"], new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .Build();
 
-            ArtifactFinderResultMulti result = await finder.FindMultiAsync(runtime.ServiceProvider, runtime.VariableStore, runtime.Logger, CancellationToken.None);
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
 
-            Assert.Equal(2, result.ArtifactReferences.Length);
+            run.EnsureRanToCompletion();
+            FileArtifactData[] data = run.ArtifactStore.GetAll()
+                .Cast<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>>()
+                .Select(x => x.Last)
+                .ToArray();
+
+            Assert.Equal(2, data.Length);
         }
         finally
         {
@@ -99,17 +110,16 @@ public class LocalIOAdvancedTests
     }
 
     [Fact]
-    public void GetFileArtifact_ReturnsTypedArtifactInstance()
+    public async Task GetFileArtifact_ReturnsTypedArtifactInstance()
     {
-        RuntimeContext runtime = new();
-        ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> instance =
-            new(new FileArtifactDescriber(), "file", new FileArtifactReference(Var.Const("sample.txt")), new FileArtifactData([1, 2, 3]));
+        Timeline timeline = Timeline.Create().Build();
 
-        runtime.ArtifactStore.AddArtifact(instance);
+        TimelineRun run = await timeline.SetupRun()
+            .AddArtifact("file", new FileArtifactReference(Var.Const("sample.txt")), new FileArtifactData([1, 2, 3]))
+            .RunAsync();
 
-        ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> resolved = runtime.ArtifactStore.GetFileArtifact("file");
+        ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> resolved = run.ArtifactStore.GetFileArtifact("file");
 
-        Assert.Same(instance, resolved);
         Assert.Equal(new byte[] { 1, 2, 3 }, resolved.Last.Data);
     }
 
@@ -118,21 +128,6 @@ public class LocalIOAdvancedTests
         string path = Path.Combine(Path.GetTempPath(), $"localio-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
-    }
-
-    private sealed class RuntimeContext
-    {
-        public IServiceProvider ServiceProvider { get; } = new EmptyServiceProvider();
-        public ScopedLogger Logger { get; } = new(null);
-        public DebuggingRunSession DebuggingSession { get; } = new(EmptyRunDebugger.CreateNew());
-        public VariableStore VariableStore { get; }
-        public ArtifactStore ArtifactStore { get; }
-
-        public RuntimeContext()
-        {
-            VariableStore = new VariableStore(Logger, DebuggingSession);
-            ArtifactStore = new ArtifactStore(Logger, DebuggingSession);
-        }
     }
 
     private sealed class FakeTimelineRunBuilder : ITimelineRunBuilder

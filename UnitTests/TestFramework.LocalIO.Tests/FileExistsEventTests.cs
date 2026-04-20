@@ -1,8 +1,7 @@
-using TestFramework.Core;
-using TestFramework.Core.Artifacts;
-using TestFramework.Core.Debugger;
-using TestFramework.Core.Logging;
+using TestFramework.Core.Exceptions;
+using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
+using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFrameworkLocalIO;
 using LocalIOFacade = TestFrameworkLocalIO.LocalIO;
@@ -14,23 +13,23 @@ public class FileExistsEventTests
     [Fact]
     public async Task OnSequentialPolling_ReturnsTrueAndConfiguredDelayWhenFileExists()
     {
-        RuntimeContext runtime = RuntimeContext.Create();
         string path = Path.Combine(Path.GetTempPath(), $"exists-{Guid.NewGuid():N}.txt");
-        VariableIdentifier pathIdentifier = new("path");
-        VariableIdentifier delayIdentifier = new("delay");
 
         try
         {
             File.WriteAllText(path, "ready");
-            runtime.VariableStore.SetVariable(pathIdentifier, path);
-            runtime.VariableStore.SetVariable(delayIdentifier, TimeSpan.FromMilliseconds(125));
+            Timeline timeline = Timeline.Create()
+                .WaitForEvent(LocalIOFacade.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
+                .Name("file-exists")
+                .Build();
 
-            FileExistsEvent fileExists = LocalIOFacade.Events.FileExists(Var.Ref<string>(pathIdentifier), Var.Ref<TimeSpan>(delayIdentifier));
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("path", path)
+                .AddVariable("delay", TimeSpan.FromMilliseconds(125))
+                .RunAsync();
 
-            var result = await fileExists.OnSequentialPolling(runtime.ServiceProvider, runtime.VariableStore, runtime.ArtifactStore, runtime.Logger, CancellationToken.None);
-
-            Assert.True(result.IsDone);
-            Assert.Equal(TimeSpan.FromMilliseconds(125), result.NextDelay);
+            run.EnsureRanToCompletion();
+            Assert.Equal(StepState.Complete, run.Step("file-exists").State);
         }
         finally
         {
@@ -44,12 +43,17 @@ public class FileExistsEventTests
     [Fact]
     public async Task OnSequentialPolling_ThrowsWhenResolvedPathIsNull()
     {
-        RuntimeContext runtime = RuntimeContext.Create();
-        VariableIdentifier pathIdentifier = new("path");
-        runtime.VariableStore.SetVariable<string?>(pathIdentifier, null);
-        FileExistsEvent fileExists = LocalIOFacade.Events.FileExists(Var.Ref<string>(pathIdentifier));
+        Timeline timeline = Timeline.Create()
+            .WaitForEvent(LocalIOFacade.Events.FileExists(Var.Ref<string>("path")))
+            .Name("file-exists")
+            .Build();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => fileExists.OnSequentialPolling(runtime.ServiceProvider, runtime.VariableStore, runtime.ArtifactStore, runtime.Logger, CancellationToken.None));
+        TimelineRun run = await timeline.SetupRun()
+            .AddVariable<string?>("path", null)
+            .RunAsync();
+
+        TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+        Assert.Contains(exception.FailedSteps, step => step.StepException is ArgumentNullException);
     }
 
     [Fact]
@@ -97,20 +101,4 @@ public class FileExistsEventTests
             });
     }
 
-    private sealed class RuntimeContext
-    {
-        public IServiceProvider ServiceProvider { get; } = new EmptyServiceProvider();
-        public ScopedLogger Logger { get; } = new(null);
-        public DebuggingRunSession DebuggingSession { get; } = new(EmptyRunDebugger.CreateNew());
-        public VariableStore VariableStore { get; }
-        public ArtifactStore ArtifactStore { get; }
-
-        private RuntimeContext()
-        {
-            VariableStore = new VariableStore(Logger, DebuggingSession);
-            ArtifactStore = new ArtifactStore(Logger, DebuggingSession);
-        }
-
-        public static RuntimeContext Create() => new();
-    }
 }
