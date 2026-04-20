@@ -1,7 +1,7 @@
 ﻿using TestFramework.Core.Variables;
-using TestFrameworkLocalIO.Artifacts;
+using TestFramework.LocalIO.Artifacts;
 
-namespace TestFrameworkLocalIO;
+namespace TestFramework.LocalIO;
 
 public static class LocalIO
 {

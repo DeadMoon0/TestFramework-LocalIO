@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
-using TestFrameworkLocalIO.Artifacts;
+using TestFramework.LocalIO.Artifacts;
 
-namespace TestFrameworkLocalIO;
+namespace TestFramework.LocalIO;
 
 public static class FileArtifactExtension
 {

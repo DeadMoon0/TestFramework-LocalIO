@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using TestFramework.Core.Artifacts;
 
-namespace TestFrameworkLocalIO.Artifacts;
+namespace TestFramework.LocalIO.Artifacts;
 
 public class FileArtifactData(byte[] data) : ArtifactData<FileArtifactData, FileArtifactDescriber, FileArtifactReference>
 {

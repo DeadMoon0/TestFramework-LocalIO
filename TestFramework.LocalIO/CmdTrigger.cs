@@ -5,7 +5,7 @@ using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Variables;
 
-namespace TestFrameworkLocalIO;
+namespace TestFramework.LocalIO;
 
 public class CmdTrigger(VariableReference<string> command, VariableReference<string> workingDirectory) : Step<int>
 {

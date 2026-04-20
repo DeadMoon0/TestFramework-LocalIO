@@ -1,6 +1,6 @@
 ﻿using TestFramework.Core.Artifacts;
 
-namespace TestFrameworkLocalIO.Artifacts;
+namespace TestFramework.LocalIO.Artifacts;
 
 public class FileArtifactKind : ArtifactKind<FileArtifactDescriber, FileArtifactData, FileArtifactReference>, IStaticArtifactKind<FileArtifactKind>
 {

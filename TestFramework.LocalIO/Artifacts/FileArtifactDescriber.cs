@@ -2,7 +2,7 @@
 using TestFramework.Core.Logging;
 using TestFramework.Core.Variables;
 
-namespace TestFrameworkLocalIO.Artifacts;
+namespace TestFramework.LocalIO.Artifacts;
 
 public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
 {
