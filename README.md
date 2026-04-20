@@ -32,3 +32,14 @@ With this solution you can:
 - Read the package-level overview in [TestFramework.LocalIO/README.md](./TestFramework.LocalIO/README.md)
 - Then use the Showroom repository and look for `TestFramework.Showroom.Basic/10_IOContracts.cs` as the most relevant entry example for file-oriented flows
 - Pair this solution with TestFramework-Core first, then layer in other extensions only when the test workflow needs them
+
+## CI Pull Requests
+
+- Pull requests run unit tests through the GitHub Actions workflow `unit-tests`.
+- If branch protection requires status checks, `unit-tests` must pass before merge.
+
+Local pre-PR test command:
+
+```bash
+dotnet test UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj --configuration Release
+```

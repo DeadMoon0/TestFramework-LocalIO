@@ -2,9 +2,9 @@ using TestFramework.Core.Artifacts;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
 using TestFramework.Core.Variables;
-using TestFrameworkLocalIO;
-using TestFrameworkLocalIO.Artifacts;
-using LocalIOFacade = TestFrameworkLocalIO.LocalIO;
+using TestFramework.LocalIO;
+using TestFramework.LocalIO.Artifacts;
+using LocalIOFacade = TestFramework.LocalIO.LocalIO;
 
 namespace TestFramework.LocalIO.Tests;
 

@@ -3,8 +3,8 @@ using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
-using TestFrameworkLocalIO;
-using LocalIOFacade = TestFrameworkLocalIO.LocalIO;
+using TestFramework.LocalIO;
+using LocalIOFacade = TestFramework.LocalIO.LocalIO;
 
 namespace TestFramework.LocalIO.Tests;
 
