@@ -2,9 +2,7 @@ using TestFramework.Core.Artifacts;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
 using TestFramework.Core.Variables;
-using TestFramework.LocalIO;
 using TestFramework.LocalIO.Artifacts;
-using LocalIOFacade = TestFramework.LocalIO.LocalIO;
 
 namespace TestFramework.LocalIO.Tests;
 
@@ -19,7 +17,7 @@ public class LocalIOAdvancedTests
         {
             File.WriteAllText(Path.Combine(tempDir, "marker.txt"), "ready");
             Timeline timeline = Timeline.Create()
-                .Trigger(LocalIOFacade.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
+                .Trigger(LocalIO.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
                 .Name("cmd")
                 .Build();
 

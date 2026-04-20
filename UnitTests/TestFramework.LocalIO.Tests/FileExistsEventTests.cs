@@ -3,8 +3,6 @@ using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
-using TestFramework.LocalIO;
-using LocalIOFacade = TestFramework.LocalIO.LocalIO;
 
 namespace TestFramework.LocalIO.Tests;
 
@@ -19,7 +17,7 @@ public class FileExistsEventTests
         {
             File.WriteAllText(path, "ready");
             Timeline timeline = Timeline.Create()
-                .WaitForEvent(LocalIOFacade.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
+                .WaitForEvent(LocalIO.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
                 .Name("file-exists")
                 .Build();
 
@@ -44,7 +42,7 @@ public class FileExistsEventTests
     public async Task OnSequentialPolling_ThrowsWhenResolvedPathIsNull()
     {
         Timeline timeline = Timeline.Create()
-            .WaitForEvent(LocalIOFacade.Events.FileExists(Var.Ref<string>("path")))
+            .WaitForEvent(LocalIO.Events.FileExists(Var.Ref<string>("path")))
             .Name("file-exists")
             .Build();
 
@@ -59,7 +57,7 @@ public class FileExistsEventTests
     [Fact]
     public void DeclareIO_AddsPathAndPollDelayMetadata()
     {
-        FileExistsEvent fileExists = LocalIOFacade.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay"));
+        FileExistsEvent fileExists = LocalIO.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay"));
         StepIOContract contract = new();
 
         fileExists.DeclareIO(contract);
@@ -85,7 +83,7 @@ public class FileExistsEventTests
     [Fact]
     public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()
     {
-        CmdTrigger trigger = LocalIOFacade.Trigger.Cmd(Var.Ref<string>("cmd"));
+        CmdTrigger trigger = LocalIO.Trigger.Cmd(Var.Ref<string>("cmd"));
         StepIOContract contract = new();
 
         trigger.DeclareIO(contract);
