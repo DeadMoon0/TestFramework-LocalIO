@@ -84,6 +84,20 @@
     - treating a path string as the same thing as a tracked artifact when the content matters later
 </anti_patterns>
 
+<important_type_map>
+    Common type map for discovery and error interpretation:
+    - LocalIO: package facade for local machine triggers, events, and artifacts
+    - CmdTrigger: command execution step behind LocalIO.Trigger.Cmd(...)
+    - FileExistsEvent: polling event behind LocalIO.Events.FileExists(...)
+    - FileArtifact / FileArtifactReference: tracked file objects used for setup and inspection
+    - FileArtifactFolderFinder: runtime folder scan that returns one or more file artifacts
+
+    Discovery heuristics for the agent:
+    - If users talk about shell commands, batch execution, or exit codes, they usually mean CmdTrigger.
+    - If users talk about waiting for files or polling folders, they usually mean FileExistsEvent or FileArtifactFolderFinder.
+    - If users talk about inspecting produced files later in the run, treat them as artifacts rather than plain paths.
+</important_type_map>
+
 <sources>
     TestFramework-LocalIO/README.md
     TestFramework-LocalIO/TestFramework.LocalIO/README.md
