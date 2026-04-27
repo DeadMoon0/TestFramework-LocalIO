@@ -1,49 +1,50 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Title>TestFramework Local IO</Title>
-    <Version>0.1.0</Version>
-    <Authors>DeadMoon0</Authors>
-    <Product>TestFramework</Product>
-    <Description>Manage your Local IO with a Framework Timeline.</Description>
-    <PackageProjectUrl>https://github.com/DeadMoon0/TestFramework-LocalIO</PackageProjectUrl>
-    <PackageIcon>Icon.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/DeadMoon0/TestFramework-LocalIO.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>Test;UnitTest;IntegrationTest,Framework;Fluent;Timeline;Local;IO</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Title>TestFramework Local IO</Title>
+		<Version>0.1.1</Version>
+		<Authors>DeadMoon0</Authors>
+		<Product>TestFramework</Product>
+		<Description>Manage your Local IO with a Framework Timeline.</Description>
+		<PackageProjectUrl>https://github.com/DeadMoon0/TestFramework-LocalIO</PackageProjectUrl>
+		<PackageIcon>Icon.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/DeadMoon0/TestFramework-LocalIO.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>Test;UnitTest;IntegrationTest,Framework;Fluent;Timeline;Local;IO</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
+		<PackageReleaseNotes>Added better docs</PackageReleaseNotes>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\Modules\TestFramework-Common\Assets\Icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\Modules\TestFramework-Common\Assets\Icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="TestFramework.Core" Version="0.1.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="TestFramework.Core" Version="0.1.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Update="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

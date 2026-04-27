@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Environment;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
@@ -67,7 +68,7 @@ public class LocalIOAdvancedTests
 
         TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
 
-        Assert.Contains(exception.FailedSteps, step => step.StepException is OperationCanceledException);
+        Assert.Contains(exception.FailedSteps, step => step.StepException is TimeoutException);
     }
 
     [Fact]
@@ -183,5 +184,7 @@ public class LocalIOAdvancedTests
         public ITimelineRunBuilder AddVariable<T>(VariableIdentifier identifier, T value) => this;
 
         public Task<TimelineRun> RunAsync() => Task.FromResult<TimelineRun>(null!);
+
+        public ITimelineRunBuilder SetEnv(IEnvironmentProvider environment) => this;
     }
 }
