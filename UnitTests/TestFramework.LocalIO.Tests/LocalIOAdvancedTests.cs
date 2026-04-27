@@ -1,4 +1,6 @@
+using System.Runtime.Versioning;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Exceptions;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
 using TestFramework.Core.Variables;
@@ -9,6 +11,7 @@ namespace TestFramework.LocalIO.Tests;
 public class LocalIOAdvancedTests
 {
     [Fact]
+    [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_Execute_UsesConfiguredWorkingDirectory()
     {
         string tempDir = CreateTempDirectory();
@@ -33,6 +36,38 @@ public class LocalIOAdvancedTests
         {
             Directory.Delete(tempDir, true);
         }
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task CmdTrigger_Execute_ReturnsProcessExitCodeForFailingCommand()
+    {
+        Timeline timeline = Timeline.Create()
+            .Trigger(LocalIO.Trigger.Cmd(Var.Const("exit /b 7")))
+            .Name("cmd")
+            .Build();
+
+        TimelineRun run = await timeline.SetupRun().RunAsync();
+
+        run.EnsureRanToCompletion();
+        Assert.Equal(7, Assert.IsType<int>(run.Step("cmd").LastResult.Result));
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationError()
+    {
+        Timeline timeline = Timeline.Create()
+            .Trigger(LocalIO.Trigger.Cmd(Var.Const("ping 127.0.0.1 -n 6 > nul")))
+            .Name("cmd")
+            .WithTimeOut(TimeSpan.FromMilliseconds(100))
+            .Build();
+
+        TimelineRun run = await timeline.SetupRun().RunAsync();
+
+        TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+
+        Assert.Contains(exception.FailedSteps, step => step.StepException is OperationCanceledException);
     }
 
     [Fact]

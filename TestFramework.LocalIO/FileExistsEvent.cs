@@ -7,24 +7,36 @@ using TestFramework.Core.Variables;
 
 namespace TestFramework.LocalIO;
 
+/// <summary>
+/// Polls until a file exists at the resolved path.
+/// </summary>
+/// <param name="path">The file path to watch.</param>
+/// <param name="pollDelay">The delay between polling attempts. Defaults to 500 ms when omitted.</param>
 public class FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay = null) : SequentialEvent<FileExistsEvent, object?>
 {
+    /// <inheritdoc />
     public override string Name => "File Exists Event";
-    public override string Description => "Completes if the File Exists";
 
+    /// <inheritdoc />
+    public override string Description => "Completes when the target file exists.";
+
+    /// <inheritdoc />
     public override bool DoesReturn => false;
 
+    /// <inheritdoc />
     public override Step<object?> Clone()
     {
         return new FileExistsEvent(path, pollDelay).WithClonedOptions(this);
     }
 
+    /// <inheritdoc />
     public override async Task<SequentialPollingResult<object?>> OnSequentialPolling(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
         string _path = path.GetValue(variableStore) ?? throw new ArgumentNullException(nameof(path), "The Path cannot be Null.");
         return new SequentialPollingResult<object?>(File.Exists(_path), null, pollDelay?.GetValue(variableStore) ?? TimeSpan.FromSeconds(0.5));
     }
 
+    /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
         if (path.HasIdentifier)

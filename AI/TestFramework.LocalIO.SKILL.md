@@ -25,6 +25,7 @@
     Avoid hiding command behavior in large shell strings when readability would suffer.
     Prefer artifact registration when the file content is part of what the test needs to inspect later.
     Keep command execution, file waiting, and artifact inspection as separate visible concerns in the timeline whenever possible.
+    Treat LocalIO as Windows-first unless the user has explicitly extended the command surface.
 </best_practices>
 
 <api_hints>
@@ -45,7 +46,18 @@
     - FileExists(...) is a polling event with a default poll delay and relies on timeline timeout for upper bounds.
     - File artifacts have describers, references, and data objects just like other Core artifacts.
     - Folder discovery returns one or many file artifacts from the directory at runtime.
+    - richer stdout/stderr capture is not yet the core package story, so do not pretend LocalIO already exposes a full process-observability model
 </runtime_behavior>
+
+<release_readiness_notes>
+    1.0 grounding the agent should preserve:
+    - command behavior is explicitly CMD.EXE-based today
+    - README guidance covers Windows-only behavior, failure handling, and artifact-finder semantics
+    - the remaining backlog is broader cross-platform execution and richer output capture, not missing baseline usability
+
+    Practical recommendation:
+    - when users need portable shell behavior or first-class stdout/stderr artifacts, describe that as extension or post-1.0 work rather than as an existing LocalIO capability
+</release_readiness_notes>
 
 <style_guide>
     Keep local preparation steps obvious and deterministic.

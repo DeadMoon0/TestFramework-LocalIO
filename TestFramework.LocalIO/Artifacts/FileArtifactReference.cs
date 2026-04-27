@@ -5,23 +5,32 @@ using TestFramework.Core.Variables;
 
 namespace TestFramework.LocalIO.Artifacts;
 
+/// <summary>
+/// References a file on disk for LocalIO artifact operations.
+/// </summary>
 public class FileArtifactReference : ArtifactReference<FileArtifactReference, FileArtifactDescriber, FileArtifactData>
 {
     private string pinnedPath = "";
 
     private VariableReference<string> path;
 
+    /// <summary>
+    /// Creates a file artifact reference from a variable-backed path.
+    /// </summary>
+    /// <param name="path">The variable reference that resolves to the file path.</param>
     public FileArtifactReference(VariableReference<string> path)
     {
         this.path = path;
         CanDeconstruct = true;
     }
 
+    /// <inheritdoc />
     public override void OnPinReference(VariableStore variableStore, ScopedLogger logger)
     {
         pinnedPath = path.GetValue(variableStore) ?? throw new InvalidOperationException("The Path to a File cannot be NULL.");
     }
 
+    /// <inheritdoc />
     public override async Task<ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> ResolveToDataAsync(IServiceProvider serviceProvider, ArtifactVersionIdentifier versionIdentifier, VariableStore variableStore, ScopedLogger logger)
     {
         string _path = path.GetValue(variableStore) ?? throw new ArgumentNullException();
@@ -37,6 +46,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         };
     }
 
+    /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
         if (path.HasIdentifier)
@@ -49,5 +59,6 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         return path.GetValue(variableStore) ?? throw new InvalidOperationException("The Path to a File cannot be NULL.");
     }
 
+    /// <inheritdoc />
     public override string ToString() => IsPinned ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
 }

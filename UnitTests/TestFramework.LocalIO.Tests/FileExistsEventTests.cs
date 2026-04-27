@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
@@ -81,6 +82,7 @@ public class FileExistsEventTests
     }
 
     [Fact]
+    [SupportedOSPlatform("windows")]
     public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()
     {
         CmdTrigger trigger = LocalIO.Trigger.Cmd(Var.Ref<string>("cmd"));
