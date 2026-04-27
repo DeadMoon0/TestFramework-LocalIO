@@ -4,18 +4,24 @@ using TestFramework.Core.Variables;
 
 namespace TestFramework.LocalIO.Artifacts;
 
+/// <summary>
+/// Sets up and tears down file artifacts on disk.
+/// </summary>
 public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
 {
+    /// <inheritdoc />
     public override Task Deconstruct(IServiceProvider serviceProvider, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {
         if (File.Exists(reference.GetPath(variableStore))) File.Delete(reference.GetPath(variableStore));
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public override Task Setup(IServiceProvider serviceProvider, FileArtifactData data, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {
         return File.WriteAllBytesAsync(reference.GetPath(variableStore), data.Data);
     }
 
+    /// <inheritdoc />
     public override string ToString() => "File";
 }
