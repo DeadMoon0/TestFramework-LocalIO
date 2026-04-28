@@ -12,9 +12,15 @@ namespace TestFramework.LocalIO.Tests;
 public class LocalIOAdvancedTests
 {
     [Fact]
+    [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_Execute_UsesConfiguredWorkingDirectory()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         string tempDir = CreateTempDirectory();
 
         try
@@ -40,9 +46,15 @@ public class LocalIOAdvancedTests
     }
 
     [Fact]
+    [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_Execute_ReturnsProcessExitCodeForFailingCommand()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         Timeline timeline = Timeline.Create()
             .Trigger(LocalIO.Trigger.Cmd(Var.Const("exit /b 7")))
             .Name("cmd")
@@ -55,9 +67,15 @@ public class LocalIOAdvancedTests
     }
 
     [Fact]
+    [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationError()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         Timeline timeline = Timeline.Create()
             .Trigger(LocalIO.Trigger.Cmd(Var.Const("ping 127.0.0.1 -n 6 > nul")))
             .Name("cmd")

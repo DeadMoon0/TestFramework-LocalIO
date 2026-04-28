@@ -26,6 +26,7 @@
     Prefer artifact registration when the file content is part of what the test needs to inspect later.
     Keep command execution, file waiting, and artifact inspection as separate visible concerns in the timeline whenever possible.
     Treat LocalIO as Windows-first unless the user has explicitly extended the command surface.
+    Prefer compact shapes such as `Trigger(LocalIO.Trigger.Cmd(...))` and `WaitForEvent(LocalIO.Events.FileExists(...))` when the command or path still reads clearly.
 </best_practices>
 
 <api_hints>
@@ -49,21 +50,22 @@
     - richer stdout/stderr capture is not yet the core package story, so do not pretend LocalIO already exposes a full process-observability model
 </runtime_behavior>
 
-<release_readiness_notes>
-    1.0 grounding the agent should preserve:
+<documentation_notes>
+    Guidance the agent should preserve:
     - command behavior is explicitly CMD.EXE-based today
     - README guidance covers Windows-only behavior, failure handling, and artifact-finder semantics
     - the remaining backlog is broader cross-platform execution and richer output capture, not missing baseline usability
 
     Practical recommendation:
-    - when users need portable shell behavior or first-class stdout/stderr artifacts, describe that as extension or post-1.0 work rather than as an existing LocalIO capability
-</release_readiness_notes>
+    - when users need portable shell behavior or first-class stdout/stderr artifacts, describe that as extension or future work rather than as an existing LocalIO capability
+</documentation_notes>
 
 <style_guide>
     Keep local preparation steps obvious and deterministic.
     Prefer stable output paths scoped to the test environment.
     Keep shell commands readable; if a command string is too dense, consider extracting the setup around it instead of obscuring the timeline.
     Use artifact identifiers that communicate what the file is, not only where it is.
+    Prefer ordinary C# constants or locals for repeated path fragments, and keep `Var.Const(...)` inline when a one-off value does not deserve a separate timeline variable.
 </style_guide>
 
 <sample_patterns>

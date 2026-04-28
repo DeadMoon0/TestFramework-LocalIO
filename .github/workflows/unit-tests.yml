@@ -30,4 +30,4 @@ jobs:
         run: dotnet restore UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj
 
       - name: Run unit tests
-        run: dotnet test UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj --configuration Release --no-restore --logger "trx"
+        run: dotnet test UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj --configuration Release --no-restore --filter "Category!=WindowsOnly" --logger "trx"

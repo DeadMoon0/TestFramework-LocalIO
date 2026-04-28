@@ -82,6 +82,7 @@ public class FileExistsEventTests
     }
 
     [Fact]
+    [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()
     {

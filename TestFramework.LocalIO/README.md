@@ -21,15 +21,16 @@ using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO;
 
-string outputPath = Path.Combine(Environment.CurrentDirectory, "out.txt");
+const string outputFileName = "out.txt";
+string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
 
 Timeline timeline = Timeline.Create()
-    .Trigger(LocalIO.Trigger.Cmd(Var.Const("echo hello > out.txt")))
+    .Trigger(LocalIO.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
+    .WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
     .RegisterArtifact("outFile", LocalIO.Artifacts.FileRef(Var.Const(outputPath)))
     .Build();
 
-TimelineRun run = await timeline.SetupRun()
-    .RunAsync();
+TimelineRun run = await timeline.SetupRun().RunAsync();
 
 run.EnsureRanToCompletion();
 string content = run.ArtifactStore.GetFileArtifact("outFile").Last.DataAsUtf8String;
@@ -56,9 +57,7 @@ Timeline timeline = Timeline.Create()
 using TestFramework.Core.Timelines;
 using TestFramework.LocalIO;
 
-TimelineRun run = await timeline.SetupRun()
-    .AddFileArtifact("inputFile", "input.txt", "hello world")
-    .RunAsync();
+TimelineRun run = await timeline.SetupRun().AddFileArtifact("inputFile", "input.txt", "hello world").RunAsync();
 
 string content = run.ArtifactStore.GetFileArtifact("inputFile").Last.DataAsUtf8String;
 ```

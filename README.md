@@ -30,16 +30,15 @@ public class LocalIoSample
 	[Fact]
 	public async Task CanExecuteCommandAndWaitForFile()
 	{
-		string outputPath = Path.Combine(Environment.CurrentDirectory, "out.txt");
+		const string outputFileName = "out.txt";
+		string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
 
 		Timeline timeline = Timeline.Create()
-			.Trigger(LocalIO.Trigger.Cmd(Var.Const("echo hello > out.txt")))
+			.Trigger(LocalIO.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
 			.WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath)))
 			.Build();
 
-		TimelineRun run = await timeline
-			.SetupRun()
-			.RunAsync();
+		TimelineRun run = await timeline.SetupRun().RunAsync();
 
 		run.EnsureRanToCompletion();
 	}
