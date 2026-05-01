@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TestFramework Local IO</Title>
-		<Version>0.1.1</Version>
+		<Version>0.1.2</Version>
 		<Authors>DeadMoon0</Authors>
 		<Product>TestFramework</Product>
 		<Description>Manage your Local IO with a Framework Timeline.</Description>
@@ -37,7 +37,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="TestFramework.Core" Version="0.1.2" />
+		<PackageReference Include="TestFramework.Core" Version="0.1.3" />
 	</ItemGroup>
 
 	<ItemGroup>
