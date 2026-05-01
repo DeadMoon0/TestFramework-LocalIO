@@ -19,7 +19,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
         string? filePath = Directory.GetFiles(folderPath.GetRequiredValue(variableStore)).FirstOrDefault();
         if (filePath == null)
         {
-            logger.LogWarning("No files found in folder: {FolderPath}", folderPath.GetRequiredValue(variableStore));
+            logger.LogWarning($"No files found in folder: {folderPath.GetRequiredValue(variableStore)}");
             return Task.FromResult<ArtifactFinderResult?>(null);
         }
 
