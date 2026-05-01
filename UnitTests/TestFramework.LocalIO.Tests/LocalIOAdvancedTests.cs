@@ -118,6 +118,30 @@ public class LocalIOAdvancedTests
     }
 
     [Fact]
+    public async Task FileArtifactFolderFinder_FindAsync_ReturnsNullWhenFolderIsEmpty()
+    {
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            Timeline timeline = Timeline.Create()
+                .FindArtifact("file", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
+
+            run.EnsureRanToCompletion();
+            Assert.Empty(run.ArtifactStore.GetAll());
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
     public async Task FileArtifactFolderFinder_FindMultiAsync_ReturnsAllFilesInFolder()
     {
         string tempDir = CreateTempDirectory();
@@ -159,6 +183,19 @@ public class LocalIOAdvancedTests
         Assert.Equal("file", builder.ArtifactIdentifier!.Identifier);
         Assert.NotNull(builder.Reference);
         Assert.Equal("hello", builder.Data!.DataAsUtf8String);
+    }
+
+    [Fact]
+    public void AddFileArtifact_WithBinaryData_PreservesBytesAndUsesProvidedPath()
+    {
+        FakeTimelineRunBuilder builder = new();
+
+        builder.AddFileArtifact("file", "sample.bin", [1, 2, 3]);
+
+        Assert.NotNull(builder.ArtifactIdentifier);
+        Assert.Equal("file", builder.ArtifactIdentifier!.Identifier);
+        Assert.NotNull(builder.Reference);
+        Assert.Equal(new byte[] { 1, 2, 3 }, builder.Data!.Data);
     }
 
     [Fact]
