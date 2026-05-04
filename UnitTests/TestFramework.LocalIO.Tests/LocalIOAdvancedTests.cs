@@ -151,7 +151,7 @@ public class LocalIOAdvancedTests
             File.WriteAllText(Path.Combine(tempDir, "a.txt"), "a");
             File.WriteAllText(Path.Combine(tempDir, "b.txt"), "b");
             Timeline timeline = Timeline.Create()
-                .FindArtifactMulti(["file0", "file1"], new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .FindArtifactsAs(["file0", "file1"], new FileArtifactFolderFinder(Var.Ref<string>("folder")))
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
@@ -165,6 +165,67 @@ public class LocalIOAdvancedTests
                 .ToArray();
 
             Assert.Equal(2, data.Length);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task FileArtifactFolderFinder_FindArtifacts_GeneratesBaseNameAndIndexedSuffixes()
+    {
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "a.txt"), "a");
+            File.WriteAllText(Path.Combine(tempDir, "b.txt"), "b");
+            Timeline timeline = Timeline.Create()
+                .FindArtifacts("file", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
+
+            run.EnsureRanToCompletion();
+
+            string[] identifiers = run.ArtifactStore.GetAll()
+                .Select(x => x.Identifier.Identifier)
+                .ToArray();
+
+            Assert.Contains("file_0", identifiers);
+            Assert.Contains("file_1", identifiers);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task FileArtifactFolderFinder_FindArtifactsAs_FailsWhenFinderCountDoesNotMatchNames()
+    {
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "a.txt"), "a");
+            File.WriteAllText(Path.Combine(tempDir, "b.txt"), "b");
+            Timeline timeline = Timeline.Create()
+                .FindArtifactsAs(["file0"], new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
+
+            TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+
+            Assert.Contains(exception.FailedSteps, step =>
+                step.StepException is InvalidOperationException invalidOperationException &&
+                invalidOperationException.Message == "FindArtifactsAs expected 1 artifact names but finder produced 2 results.");
         }
         finally
         {
