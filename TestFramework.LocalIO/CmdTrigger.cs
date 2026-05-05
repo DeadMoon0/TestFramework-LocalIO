@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
+using System.IO;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps;
@@ -9,11 +11,12 @@ using TestFramework.Core.Variables;
 namespace TestFramework.LocalIO;
 
 /// <summary>
-/// Executes a Windows command through <c>CMD.EXE</c> and returns the process exit code.
+/// Executes a shell command and returns the process exit code.
+/// On Windows this uses <c>CMD.EXE /C</c>; on Unix-like systems it prefers <c>bash -c</c>
+/// and falls back to <c>/bin/sh -c</c> if bash is not present.
 /// </summary>
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory for the command.</param>
-[SupportedOSPlatform("windows")]
 public class CmdTrigger(VariableReference<string> command, VariableReference<string> workingDirectory) : Step<int>
 {
     /// <inheritdoc />
@@ -34,15 +37,39 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     /// <inheritdoc />
     public override async Task<int> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
-        ProcessStartInfo info = new ProcessStartInfo
+        string? cmdText = command.GetValue(variableStore);
+        if (cmdText is null)
+            throw new InvalidOperationException("CmdTrigger command is null");
+        string workingDir = workingDirectory.GetValue(variableStore) ?? Environment.CurrentDirectory;
+        ProcessStartInfo info;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            FileName = "CMD.EXE",
-            Arguments = "/C " + command.GetValue(variableStore),
-            UseShellExecute = false,
-            WorkingDirectory = workingDirectory.GetValue(variableStore),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
+            info = new ProcessStartInfo
+            {
+                FileName = "CMD.EXE",
+                Arguments = "/C " + cmdText,
+                UseShellExecute = false,
+                WorkingDirectory = workingDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+        }
+        else
+        {
+            // Prefer bash if available, otherwise fall back to sh
+            string shell = File.Exists("/bin/bash") ? "/bin/bash" : "/bin/sh";
+            string shellArgsPrefix = "-c ";
+            info = new ProcessStartInfo
+            {
+                FileName = shell,
+                Arguments = shellArgsPrefix + cmdText,
+                UseShellExecute = false,
+                WorkingDirectory = workingDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+        }
         Process process = Process.Start(info) ?? throw new InvalidOperationException("Could not Start the CMD Process");
         await process.WaitForExitAsync(cancellationToken);
         string outStd = process.StandardOutput.ReadToEnd();

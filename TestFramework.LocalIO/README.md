@@ -70,9 +70,11 @@ string content = run.ArtifactStore.GetFileArtifact("inputFile").Last.DataAsUtf8S
 - `LocalIO.Events.FileExists(...)` to wait until a file appears
 - `AddFileArtifact(...)` and `GetFileArtifact(...)` to inject and inspect file artifacts during a run
 
-## Windows Command Behavior
+## Command Behavior (cross-platform)
 
-- `LocalIO.Trigger.Cmd(...)` uses `CMD.EXE /C` and is therefore supported on Windows only.
+- `LocalIO.Trigger.Cmd(...)` executes a shell command and returns the external process exit code as the step result.
+- On Windows this uses `CMD.EXE /C <cmd>`.
+- On Unix-like systems it prefers `/bin/bash -c <cmd>` if `bash` is available, otherwise `/bin/sh -c <cmd>` is used as a fallback.
 - The trigger returns the external process exit code as its step result. Non-zero exit codes are not rewritten; assert on them explicitly when failure is expected.
 - For long-running commands, prefer timeline timeouts such as `.WithTimeOut(...)` so the run cancels the command instead of hanging indefinitely.
 - When the command writes files that later steps consume, prefer a dedicated working directory so the file polling event and file artifact reference both point at a predictable location.
