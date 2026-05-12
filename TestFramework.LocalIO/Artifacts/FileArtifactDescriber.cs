@@ -1,4 +1,7 @@
-﻿using TestFramework.Core.Artifacts;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Variables;
 

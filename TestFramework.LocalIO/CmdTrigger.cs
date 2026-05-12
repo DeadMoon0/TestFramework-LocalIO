@@ -1,7 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps;
@@ -26,7 +29,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     public override string Name => "Cmd Trigger";
 
     /// <inheritdoc />
-    public override string Description => "A trigger that executes a Windows CMD command.";
+    public override string Description => "A trigger that executes a shell command and returns the process exit code.";
 
     /// <inheritdoc />
     public override Step<int> Clone()
