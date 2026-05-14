@@ -20,7 +20,7 @@ namespace TestFramework.LocalIO;
 /// </summary>
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory for the command.</param>
-public class CmdTrigger(VariableReference<string> command, VariableReference<string> workingDirectory) : Step<int>
+public class CmdTrigger(VariableReference<string> command, VariableReference<string> workingDirectory) : Step<CmdResultContext>
 {
     /// <inheritdoc />
     public override bool DoesReturn => true;
@@ -32,13 +32,13 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     public override string Description => "A trigger that executes a shell command and returns the process exit code.";
 
     /// <inheritdoc />
-    public override Step<int> Clone()
+    public override Step<CmdResultContext> Clone()
     {
         return new CmdTrigger(command, workingDirectory).WithClonedOptions(this);
     }
 
     /// <inheritdoc />
-    public override async Task<int> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override async Task<CmdResultContext?> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
         string? cmdText = command.GetValue(variableStore);
         if (cmdText is null)
@@ -81,11 +81,11 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
         if (!String.IsNullOrWhiteSpace(outStd)) logger.LogInformation(outStd);
         if (!String.IsNullOrWhiteSpace(errorStd)) logger.LogWarning("[External stderr]\n" + errorStd);
 
-        return process.ExitCode;
+        return new CmdResultContext(process.ExitCode);
     }
 
     /// <inheritdoc />
-    public override StepInstance<Step<int>, int> GetInstance() => new StepInstance<Step<int>, int>(this);
+    public override StepInstance<Step<CmdResultContext>, CmdResultContext> GetInstance() => new StepInstance<Step<CmdResultContext>, CmdResultContext>(this);
 
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)

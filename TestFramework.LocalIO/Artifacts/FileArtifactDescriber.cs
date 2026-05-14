@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
@@ -15,7 +16,23 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
     /// <inheritdoc />
     public override Task Deconstruct(IServiceProvider serviceProvider, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {
-        if (File.Exists(reference.GetPath(variableStore))) File.Delete(reference.GetPath(variableStore));
+        string path = reference.GetPath(variableStore);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        if (reference.ShouldRemoveParentDirectoryIfEmpty)
+        {
+            string? parentDirectory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(parentDirectory)
+                && Directory.Exists(parentDirectory)
+                && !Directory.EnumerateFileSystemEntries(parentDirectory).Any())
+            {
+                Directory.Delete(parentDirectory, false);
+            }
+        }
+
         return Task.CompletedTask;
     }
 

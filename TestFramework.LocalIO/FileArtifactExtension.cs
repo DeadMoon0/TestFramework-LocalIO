@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Timelines;
+using TestFramework.Core.Timelines.Assertions;
 using TestFramework.Core.Timelines.Builder.TimelineRunBuilder;
 using TestFramework.LocalIO.Artifacts;
 
@@ -28,10 +30,15 @@ public static class FileArtifactExtension
     /// <param name="identifier">The artifact identifier.</param>
     /// <param name="path">The file path represented by the artifact.</param>
     /// <param name="utf8text">The UTF-8 text content.</param>
+    /// <param name="removeParentDirectoryIfEmpty">Removes the parent directory during cleanup when the file was its last remaining entry.</param>
     /// <returns>The current run builder.</returns>
-    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, string utf8text)
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, string utf8text, bool removeParentDirectoryIfEmpty = false)
     {
-        return run.AddArtifact(identifier, new FileArtifactReference(path), new FileArtifactData(Encoding.UTF8.GetBytes(utf8text)));
+        FileArtifactReference reference = new FileArtifactReference(path);
+        if (removeParentDirectoryIfEmpty)
+            reference.RemoveParentDirectoryIfEmpty();
+
+        return run.AddArtifact(identifier, reference, new FileArtifactData(Encoding.UTF8.GetBytes(utf8text)));
     }
 
     /// <summary>
@@ -41,9 +48,32 @@ public static class FileArtifactExtension
     /// <param name="identifier">The artifact identifier.</param>
     /// <param name="path">The file path represented by the artifact.</param>
     /// <param name="data">The binary content.</param>
+    /// <param name="removeParentDirectoryIfEmpty">Removes the parent directory during cleanup when the file was its last remaining entry.</param>
     /// <returns>The current run builder.</returns>
-    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, byte[] data)
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, byte[] data, bool removeParentDirectoryIfEmpty = false)
     {
-        return run.AddArtifact(identifier, new FileArtifactReference(path), new FileArtifactData(data));
+        FileArtifactReference reference = new FileArtifactReference(path);
+        if (removeParentDirectoryIfEmpty)
+            reference.RemoveParentDirectoryIfEmpty();
+
+        return run.AddArtifact(identifier, reference, new FileArtifactData(data));
     }
+
+    /// <summary>
+    /// Returns an assertion handle for a file artifact in a completed run.
+    /// </summary>
+    public static ArtifactHandle<FileArtifactData> FileArtifact(this TimelineRun run, ArtifactIdentifier identifier)
+        => run.Artifact<FileArtifactData>(identifier);
+
+    /// <summary>
+    /// Returns the latest file bytes as a value handle.
+    /// </summary>
+    public static ValueHandle<byte[]> Bytes(this ArtifactHandle<FileArtifactData> handle)
+        => handle.Select(data => data.Data);
+
+    /// <summary>
+    /// Returns the latest file content decoded as UTF-8 text.
+    /// </summary>
+    public static ValueHandle<string> Utf8Text(this ArtifactHandle<FileArtifactData> handle)
+        => handle.Select(data => data.DataAsUtf8String);
 }

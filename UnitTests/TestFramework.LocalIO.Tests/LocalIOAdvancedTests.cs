@@ -27,7 +27,7 @@ public class LocalIOAdvancedTests
         {
             File.WriteAllText(Path.Combine(tempDir, "marker.txt"), "ready");
             Timeline timeline = Timeline.Create()
-                .Trigger(LocalIO.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
+                .Trigger(LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
                 .Name("cmd")
                 .Build();
 
@@ -37,7 +37,7 @@ public class LocalIOAdvancedTests
                 .RunAsync();
 
             run.EnsureRanToCompletion();
-            Assert.Equal(0, Assert.IsType<int>(run.Step("cmd").LastResult.Result));
+            Assert.Equal(0, Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result).ExitCode);
         }
         finally
         {
@@ -56,14 +56,14 @@ public class LocalIOAdvancedTests
         }
 
         Timeline timeline = Timeline.Create()
-            .Trigger(LocalIO.Trigger.Cmd(Var.Const("exit /b 7")))
+            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("exit /b 7")))
             .Name("cmd")
             .Build();
 
         TimelineRun run = await timeline.SetupRun().RunAsync();
 
         run.EnsureRanToCompletion();
-        Assert.Equal(7, Assert.IsType<int>(run.Step("cmd").LastResult.Result));
+        Assert.Equal(7, Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result).ExitCode);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class LocalIOAdvancedTests
         }
 
         Timeline timeline = Timeline.Create()
-            .Trigger(LocalIO.Trigger.Cmd(Var.Const("ping 127.0.0.1 -n 6 > nul")))
+            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("ping 127.0.0.1 -n 6 > nul")))
             .Name("cmd")
             .WithTimeOut(TimeSpan.FromMilliseconds(100))
             .Build();

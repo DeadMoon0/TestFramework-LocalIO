@@ -7,7 +7,7 @@ namespace TestFramework.LocalIO;
 /// <summary>
 /// Provides the public LocalIO entry points for artifacts, triggers, and events.
 /// </summary>
-public static class LocalIO
+public static class LocalIOExt
 {
     /// <summary>
     /// Gets the LocalIO artifact helpers.

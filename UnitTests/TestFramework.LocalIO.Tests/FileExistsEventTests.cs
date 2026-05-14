@@ -18,7 +18,7 @@ public class FileExistsEventTests
         {
             File.WriteAllText(path, "ready");
             Timeline timeline = Timeline.Create()
-                .WaitForEvent(LocalIO.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
+                .WaitForEvent(LocalIOExt.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
                 .Name("file-exists")
                 .Build();
 
@@ -43,7 +43,7 @@ public class FileExistsEventTests
     public async Task OnSequentialPolling_ThrowsWhenResolvedPathIsNull()
     {
         Timeline timeline = Timeline.Create()
-            .WaitForEvent(LocalIO.Events.FileExists(Var.Ref<string>("path")))
+            .WaitForEvent(LocalIOExt.Events.FileExists(Var.Ref<string>("path")))
             .Name("file-exists")
             .Build();
 
@@ -58,7 +58,7 @@ public class FileExistsEventTests
     [Fact]
     public void DeclareIO_AddsPathAndPollDelayMetadata()
     {
-        FileExistsEvent fileExists = LocalIO.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay"));
+        FileExistsEvent fileExists = LocalIOExt.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay"));
         StepIOContract contract = new();
 
         fileExists.DeclareIO(contract);
@@ -86,7 +86,7 @@ public class FileExistsEventTests
     [SupportedOSPlatform("windows")]
     public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()
     {
-        CmdTrigger trigger = LocalIO.Trigger.Cmd(Var.Ref<string>("cmd"));
+        CmdTrigger trigger = LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"));
         StepIOContract contract = new();
 
         trigger.DeclareIO(contract);

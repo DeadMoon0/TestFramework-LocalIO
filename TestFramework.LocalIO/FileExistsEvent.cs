@@ -16,7 +16,7 @@ namespace TestFramework.LocalIO;
 /// </summary>
 /// <param name="path">The file path to watch.</param>
 /// <param name="pollDelay">The delay between polling attempts. Defaults to 500 ms when omitted.</param>
-public class FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay = null) : SequentialEvent<FileExistsEvent, object?>
+public class FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay = null) : SequentialEvent<FileExistsEvent, EmptyStepResultContext>
 {
     /// <inheritdoc />
     public override string Name => "File Exists Event";
@@ -28,16 +28,16 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     public override bool DoesReturn => false;
 
     /// <inheritdoc />
-    public override Step<object?> Clone()
+    public override Step<EmptyStepResultContext> Clone()
     {
         return new FileExistsEvent(path, pollDelay).WithClonedOptions(this);
     }
 
     /// <inheritdoc />
-    public override async Task<SequentialPollingResult<object?>> OnSequentialPolling(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override async Task<SequentialPollingResult<EmptyStepResultContext>> OnSequentialPolling(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
         string _path = path.GetValue(variableStore) ?? throw new ArgumentNullException(nameof(path), "The Path cannot be Null.");
-        return new SequentialPollingResult<object?>(File.Exists(_path), null, pollDelay?.GetValue(variableStore) ?? TimeSpan.FromSeconds(0.5));
+        return new SequentialPollingResult<EmptyStepResultContext>(File.Exists(_path), null, pollDelay?.GetValue(variableStore) ?? TimeSpan.FromSeconds(0.5));
     }
 
     /// <inheritdoc />

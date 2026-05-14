@@ -15,7 +15,7 @@
     LocalIO is for interactions on the machine that runs the tests.
     It is useful for preparation, file production, command execution, and file-based event waiting.
     It combines naturally with Core timelines and can complement other extension packages.
-    The public entry points are exposed through LocalIO.Trigger, LocalIO.Events, and LocalIO.Artifacts.
+    The public entry points are exposed through LocalIOExt.Trigger, LocalIOExt.Events, and LocalIOExt.Artifacts.
     LocalIO models local files as first-class artifacts instead of treating them as ad-hoc path strings floating around the test.
 </key_concepts>
 
@@ -26,14 +26,14 @@
     Prefer artifact registration when the file content is part of what the test needs to inspect later.
     Keep command execution, file waiting, and artifact inspection as separate visible concerns in the timeline whenever possible.
     Treat LocalIO as Windows-first unless the user has explicitly extended the command surface.
-    Prefer compact shapes such as `Trigger(LocalIO.Trigger.Cmd(...))` and `WaitForEvent(LocalIO.Events.FileExists(...))` when the command or path still reads clearly.
+    Prefer compact shapes such as `Trigger(LocalIOExt.Trigger.Cmd(...))` and `WaitForEvent(LocalIOExt.Events.FileExists(...))` when the command or path still reads clearly.
 </best_practices>
 
 <api_hints>
     Important APIs and shapes from the docs:
-    - LocalIO.Trigger.Cmd(...)
-    - LocalIO.Events.FileExists(...)
-    - LocalIO.Artifacts.FileRef(...)
+    - LocalIOExt.Trigger.Cmd(...)
+    - LocalIOExt.Events.FileExists(...)
+    - LocalIOExt.Artifacts.FileRef(...)
     - run.AddFileArtifact(...)
     - run.ArtifactStore.GetFileArtifact("name")
 
@@ -75,7 +75,7 @@
     - inspect the artifact after the run completes
 
     File wait pattern:
-    - wait for LocalIO.Events.FileExists(...)
+    - wait for LocalIOExt.Events.FileExists(...)
     - place timeout configuration close to the wait
     - assert on the produced file content afterward when needed
 </sample_patterns>
@@ -100,9 +100,9 @@
 
 <important_type_map>
     Common type map for discovery and error interpretation:
-    - LocalIO: package facade for local machine triggers, events, and artifacts
-    - CmdTrigger: command execution step behind LocalIO.Trigger.Cmd(...)
-    - FileExistsEvent: polling event behind LocalIO.Events.FileExists(...)
+    - LocalIOExt: package facade for local machine triggers, events, and artifacts
+    - CmdTrigger: command execution step behind LocalIOExt.Trigger.Cmd(...)
+    - FileExistsEvent: polling event behind LocalIOExt.Events.FileExists(...)
     - FileArtifact / FileArtifactReference: tracked file objects used for setup and inspection
     - FileArtifactFolderFinder: runtime folder scan that returns one or more file artifacts
 

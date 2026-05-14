@@ -24,9 +24,9 @@ public class ReadmeSamplesTests
         try
         {
             Timeline timeline = Timeline.Create()
-                .Trigger(LocalIO.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}"), Var.Const(tempDir)))
-                .WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
-                .RegisterArtifact("outFile", LocalIO.Artifacts.FileRef(Var.Const(outputPath)))
+                .Trigger(LocalIOExt.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}"), Var.Const(tempDir)))
+                .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
+                .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const(outputPath)))
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -52,7 +52,7 @@ public class ReadmeSamplesTests
             File.WriteAllText(outputPath, "ready");
 
             Timeline timeline = Timeline.Create()
-                .WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath)))
+                .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath)))
                 .WithTimeOut(TimeSpan.FromSeconds(10))
                 .Build();
 

@@ -4,7 +4,7 @@
 
 It adds local-machine capabilities such as command execution, file artifacts, and file-based polling events.
 
-The public entry points are exposed through `LocalIO.Trigger`, `LocalIO.Events`, and `LocalIO.Artifacts`.
+The public entry points are exposed through `LocalIOExt.Trigger`, `LocalIOExt.Events`, and `LocalIOExt.Artifacts`.
 
 ## Install
 
@@ -25,9 +25,9 @@ const string outputFileName = "out.txt";
 string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
 
 Timeline timeline = Timeline.Create()
-    .Trigger(LocalIO.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
-    .WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
-    .RegisterArtifact("outFile", LocalIO.Artifacts.FileRef(Var.Const(outputPath)))
+    .Trigger(LocalIOExt.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
+    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
+    .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const(outputPath)))
     .Build();
 
 TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -36,7 +36,7 @@ run.EnsureRanToCompletion();
 string content = run.ArtifactStore.GetFileArtifact("outFile").Last.DataAsUtf8String;
 ```
 
-Use the two-argument `LocalIO.Trigger.Cmd(command, workingDirectory)` overload when the command should execute inside an isolated temp folder rather than the current process directory.
+Use the two-argument `LocalIOExt.Trigger.Cmd(command, workingDirectory)` overload when the command should execute inside an isolated temp folder rather than the current process directory.
 
 ## Wait Until File Exists
 
@@ -48,7 +48,7 @@ using TestFramework.Core.Variables;
 using TestFramework.LocalIO;
 
 Timeline timeline = Timeline.Create()
-    .WaitForEvent(LocalIO.Events.FileExists(Var.Const(Path.Combine(Environment.CurrentDirectory, "out.txt"))))
+    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(Path.Combine(Environment.CurrentDirectory, "out.txt"))))
     .WithTimeOut(TimeSpan.FromSeconds(10))
     .Build();
 ```
@@ -66,13 +66,13 @@ string content = run.ArtifactStore.GetFileArtifact("inputFile").Last.DataAsUtf8S
 
 ## Typical Scenarios
 
-- `LocalIO.Trigger.Cmd(...)` to execute a shell command and return its exit code
-- `LocalIO.Events.FileExists(...)` to wait until a file appears
+- `LocalIOExt.Trigger.Cmd(...)` to execute a shell command and return its exit code
+- `LocalIOExt.Events.FileExists(...)` to wait until a file appears
 - `AddFileArtifact(...)` and `GetFileArtifact(...)` to inject and inspect file artifacts during a run
 
 ## Command Behavior (cross-platform)
 
-- `LocalIO.Trigger.Cmd(...)` executes a shell command and returns the external process exit code as the step result.
+- `LocalIOExt.Trigger.Cmd(...)` executes a shell command and returns the external process exit code as the step result.
 - On Windows this uses `CMD.EXE /C <cmd>`.
 - On Unix-like systems it prefers `/bin/bash -c <cmd>` if `bash` is available, otherwise `/bin/sh -c <cmd>` is used as a fallback.
 - Treat this as shell-compatible behavior rather than shell-identical behavior: quoting, built-in commands, and environment expansion can still differ between Windows and Unix-like systems.

@@ -14,6 +14,7 @@ namespace TestFramework.LocalIO.Artifacts;
 public class FileArtifactReference : ArtifactReference<FileArtifactReference, FileArtifactDescriber, FileArtifactData>
 {
     private string pinnedPath = "";
+    private bool removeParentDirectoryIfEmpty;
 
     private VariableReference<string> path;
 
@@ -25,6 +26,16 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     {
         this.path = path;
         CanDeconstruct = true;
+    }
+
+    /// <summary>
+    /// Removes the parent directory during cleanup when the artifact file was the last remaining entry.
+    /// </summary>
+    /// <returns>The same artifact reference for fluent chaining.</returns>
+    public FileArtifactReference RemoveParentDirectoryIfEmpty()
+    {
+        removeParentDirectoryIfEmpty = true;
+        return this;
     }
 
     /// <inheritdoc />
@@ -61,6 +72,8 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         if (IsPinned) return pinnedPath;
         return path.GetValue(variableStore) ?? throw new InvalidOperationException("The Path to a File cannot be NULL.");
     }
+
+    internal bool ShouldRemoveParentDirectoryIfEmpty => removeParentDirectoryIfEmpty;
 
     /// <inheritdoc />
     public override string ToString() => IsPinned ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";

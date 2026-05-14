@@ -31,7 +31,7 @@ Inside the ecosystem, TestFramework-LocalIO sits between the generic runtime in 
 Relevant collaborators:
 
 - `TestFramework.Core`: provides timeline execution, stores, assertions, and step/event base classes
-- test authors: compose local steps and events through `LocalIO.Trigger`, `LocalIO.Events`, and `LocalIO.Artifacts`
+- test authors: compose local steps and events through `LocalIOExt.Trigger`, `LocalIOExt.Events`, and `LocalIOExt.Artifacts`
 - local operating system: executes commands, exposes file system state, and stores file contents
 - showroom/examples: demonstrate how LocalIO concepts fit into broader timeline flows
 
@@ -43,7 +43,7 @@ The solution keeps the public surface area small and fluent.
 
 Key strategy decisions:
 
-- expose a facade (`LocalIO`) instead of asking consumers to instantiate concrete classes directly
+- expose a facade (`LocalIOExt`) instead of asking consumers to instantiate concrete classes directly
 - reuse Core abstractions (`Step<T>`, `SequentialEvent`, `ArtifactFinder`, typed artifact triples) rather than adding a parallel runtime
 - treat files as first-class artifacts so setup, lookup, versioning, and assertions behave like in other extensions
 - keep advanced convenience operations as extensions on the run builder and artifact store
@@ -53,7 +53,7 @@ Key strategy decisions:
 
 Main building blocks:
 
-- `LocalIO`: public facade exposing `Trigger`, `Events`, and `Artifacts`
+- `LocalIOExt`: public facade exposing `Trigger`, `Events`, and `Artifacts`
 - `CmdTrigger`: executes a shell command and returns the exit code as the step result
 - `FileExistsEvent`: polling event that completes when a path exists and optionally uses a caller-provided poll delay
 - `FileArtifactReference`, `FileArtifactData`, `FileArtifactDescriber`, `FileArtifactKind`: typed file artifact model
@@ -68,10 +68,10 @@ This yields a small package with one public vertical slice for triggers/events a
 Typical runtime scenarios:
 
 1. Command execution
-	 A timeline triggers `LocalIO.Trigger.Cmd(...)`. During execution the step launches `CMD.EXE /C ...`, streams stdout/stderr into the framework logger, and returns the process exit code.
+	 A timeline triggers `LocalIOExt.Trigger.Cmd(...)`. During execution the step launches `CMD.EXE /C ...`, streams stdout/stderr into the framework logger, and returns the process exit code.
 
 2. File-based synchronization
-	 A timeline waits for `LocalIO.Events.FileExists(...)`. The event polls until the file appears or the timeline timeout is reached.
+	 A timeline waits for `LocalIOExt.Events.FileExists(...)`. The event polls until the file appears or the timeline timeout is reached.
 
 3. File artifact registration and lookup
 	 A run can add an input file through `AddFileArtifact(...)`, or the timeline can discover one or many files through `FileArtifactFolderFinder`. Once registered, file artifacts flow through the shared artifact store and can be asserted like any other artifact.
@@ -93,7 +93,7 @@ There is no service deployment unit. Operational deployment concerns are limited
 
 ## 8. Cross-Cutting Concepts
 
-- Public facade pattern: `LocalIO` centralizes consumer entry points
+- Public facade pattern: `LocalIOExt` centralizes consumer entry points
 - typed artifact model: files integrate with the Core artifact lifecycle instead of being handled as raw strings/bytes everywhere
 - IO-contract declaration: steps and events declare required inputs, which lets the Core validator reject incomplete runs before execution
 - logging: external stdout/stderr is surfaced through the shared logger for traceability

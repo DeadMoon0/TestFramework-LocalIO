@@ -37,8 +37,8 @@ public class LocalIoSample
 		string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
 
 		Timeline timeline = Timeline.Create()
-			.Trigger(LocalIO.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
-			.WaitForEvent(LocalIO.Events.FileExists(Var.Const(outputPath)))
+			.Trigger(LocalIOExt.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
+			.WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath)))
 			.Build();
 
 		TimelineRun run = await timeline.SetupRun().RunAsync();
