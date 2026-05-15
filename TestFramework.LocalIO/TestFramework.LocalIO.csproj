@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TestFramework.LocalIO</Title>
-		<Version>0.1.3</Version>
+		<Version>0.1.4</Version>
 		<Authors>DeadMoon0</Authors>
 		<Product>TestFramework</Product>
 		<Description>Manage your Local IO with a Framework Timeline.</Description>
@@ -18,7 +18,7 @@
 		<PackageTags>Test;UnitTest;IntegrationTest,Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-		<PackageReleaseNotes>Add Supporting structure for Persistent Environments</PackageReleaseNotes>
+		<PackageReleaseNotes>Use the new Output Structure</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -37,9 +37,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\TestFramework-Core\TestFramework.Core\TestFramework.Core.csproj" />
+	  <PackageReference Include="TestFramework.Core" Version="0.1.6" />
 	</ItemGroup>
-
+	
 	<ItemGroup>
 		<None Update="README.md">
 			<Pack>True</Pack>
