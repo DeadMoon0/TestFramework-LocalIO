@@ -38,6 +38,8 @@ string content = run.ArtifactStore.GetFileArtifact("outFile").Last.DataAsUtf8Str
 
 Use the two-argument `LocalIOExt.Trigger.Cmd(command, workingDirectory)` overload when the command should execute inside an isolated temp folder rather than the current process directory.
 
+Scheduling is phase-driven. Local command triggers run in the default `Act` phase, file polling events run in `Observe`, and artifact registration runs in `Materialize`, so the common `Trigger -> WaitForEvent -> RegisterArtifact` flow stays in authored order without extra modifiers. Keep `.DoNotParallelize()` for the rarer cases where a step should still act as an explicit barrier inside its phase.
+
 ## Wait Until File Exists
 
 ```csharp
