@@ -81,7 +81,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
         if (!String.IsNullOrWhiteSpace(outStd)) logger.LogInformation(outStd);
         if (!String.IsNullOrWhiteSpace(errorStd)) logger.LogWarning("[External stderr]\n" + errorStd);
 
-        return new CmdResultContext(process.ExitCode);
+        return new CmdResultContext(process.ExitCode, outStd, errorStd, cmdText, workingDir);
     }
 
     /// <inheritdoc />

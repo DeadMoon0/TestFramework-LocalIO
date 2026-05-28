@@ -69,6 +69,58 @@ public class LocalIOAdvancedTests
     [Fact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
+    public async Task CmdTrigger_BindsUsefulOutputs_IntoTimelineVariables()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            Timeline timeline = Timeline.Create()
+                .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello&&echo warning 1>&2&&exit /b 3"), Var.Const(tempDir)))
+                .Name("cmd")
+                .GetCommandResult("cmdResult")
+                .GetExitCode("cmdExitCode")
+                .GetStandardOutput("cmdStdOut")
+                .GetStandardError("cmdStdErr")
+                .GetCommand("cmdText")
+                .GetWorkingDirectory("cmdWorkingDirectory")
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun().RunAsync();
+
+            run.EnsureRanToCompletion();
+
+            Assert.True(run.VariableStore.TryGetVariable<CmdResultContext>("cmdResult", out CmdResultContext? result));
+            Assert.NotNull(result);
+            Assert.Equal(3, result!.ExitCode);
+            Assert.Contains("hello", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("warning", result.StandardError, StringComparison.OrdinalIgnoreCase);
+
+            Assert.True(run.VariableStore.TryGetVariable<int>("cmdExitCode", out int exitCode));
+            Assert.Equal(3, exitCode);
+            Assert.True(run.VariableStore.TryGetVariable<string>("cmdStdOut", out string? stdOut));
+            Assert.Contains("hello", stdOut, StringComparison.OrdinalIgnoreCase);
+            Assert.True(run.VariableStore.TryGetVariable<string>("cmdStdErr", out string? stdErr));
+            Assert.Contains("warning", stdErr, StringComparison.OrdinalIgnoreCase);
+            Assert.True(run.VariableStore.TryGetVariable<string>("cmdText", out string? command));
+            Assert.Equal("echo hello&&echo warning 1>&2&&exit /b 3", command);
+            Assert.True(run.VariableStore.TryGetVariable<string>("cmdWorkingDirectory", out string? workingDirectory));
+            Assert.Equal(tempDir, workingDirectory);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "WindowsOnly")]
+    [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationError()
     {
         if (!OperatingSystem.IsWindows())
