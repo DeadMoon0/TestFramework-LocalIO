@@ -76,6 +76,7 @@ With this solution you can:
 ## Where To Start
 
 - Read the package-level overview in [TestFramework.LocalIO/README.md](./TestFramework.LocalIO/README.md)
+- Use that package README as the support-contract source of truth for host-platform behavior and cleanup ownership
 - Then use the Showroom repository and look for `TestFramework.Showroom.Basic/10_IOContracts.cs` as the most relevant entry example for file-oriented flows
 - Pair this solution with TestFramework-Core first, then layer in other extensions only when the test workflow needs them
 

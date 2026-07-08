@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Exceptions;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
@@ -42,7 +43,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     {
         string? cmdText = command.GetValue(variableStore);
         if (cmdText is null)
-            throw new InvalidOperationException("CmdTrigger command is null");
+            throw new FrameworkStateException("CmdTrigger command is null.");
         string workingDir = workingDirectory.GetValue(variableStore) ?? Environment.CurrentDirectory;
         ProcessStartInfo info;
 
@@ -73,7 +74,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
                 RedirectStandardError = true,
             };
         }
-        Process process = Process.Start(info) ?? throw new InvalidOperationException("Could not Start the CMD Process");
+        Process process = Process.Start(info) ?? throw new FrameworkStateException("Could not start the CMD process.");
         await process.WaitForExitAsync(cancellationToken);
         string outStd = process.StandardOutput.ReadToEnd();
         string errorStd = process.StandardError.ReadToEnd();

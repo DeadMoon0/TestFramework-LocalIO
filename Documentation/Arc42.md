@@ -20,7 +20,7 @@ The solution is aimed at integration-style tests that need local preparation, fi
 
 - Runtime target is .NET 8 (`net8.0`).
 - The package extends `TestFramework.Core` and therefore follows its timeline, step, event, and artifact abstractions.
-- Command execution is implemented with `CMD.EXE`, so the current trigger behavior is Windows-oriented.
+- Command execution uses `CMD.EXE` on Windows and a `bash`/`sh` fallback path on Unix-like hosts, so the package support contract is cross-platform shell-compatible rather than shell-identical.
 - The package is distributed as a NuGet package with README/icon metadata in the project file.
 - CI currently validates behavior through unit tests only; there is no dedicated E2E pipeline for local machine scenarios.
 
@@ -68,7 +68,7 @@ This yields a small package with one public vertical slice for triggers/events a
 Typical runtime scenarios:
 
 1. Command execution
-	 A timeline triggers `LocalIOExt.Trigger.Cmd(...)`. During execution the step launches `CMD.EXE /C ...`, streams stdout/stderr into the framework logger, and returns the process exit code.
+	 A timeline triggers `LocalIOExt.Trigger.Cmd(...)`. During execution the step launches `CMD.EXE /C ...` on Windows or a `bash`/`sh` shell on Unix-like hosts, streams stdout/stderr into the framework logger, and returns the process exit code.
 
 2. File-based synchronization
 	 A timeline waits for `LocalIOExt.Events.FileExists(...)`. The event polls until the file appears or the timeline timeout is reached.
@@ -98,11 +98,12 @@ There is no service deployment unit. Operational deployment concerns are limited
 - IO-contract declaration: steps and events declare required inputs, which lets the Core validator reject incomplete runs before execution
 - logging: external stdout/stderr is surfaced through the shared logger for traceability
 - runtime variables: command text, working directories, paths, and poll delays can be injected per run through `Var.Ref<T>`
+- explicit cleanup ownership: file artifacts are tracked by the framework, but path ownership and broader directory cleanup should remain explicit in the scenario
 
 ## 9. Architecture Decisions
 
-- Use `CMD.EXE` as the default execution mechanism for command steps.
-	Rationale: simple integration with the local Windows test environment.
+- Use the host shell rather than a custom process abstraction for command steps.
+	Rationale: keeps the API small while still supporting Windows and Unix-like hosts through the platform shell that already exists.
 
 - Model file interactions as artifacts instead of ad-hoc helper methods only.
 	Rationale: keeps LocalIO aligned with the ecosystem's cleanup/versioning/assertion semantics.
@@ -120,14 +121,15 @@ There is no service deployment unit. Operational deployment concerns are limited
 - Type safety: artifact helpers and typed retrieval should reduce casting and misuse
 - Early validation: missing variable inputs should be detectable through declared IO contracts
 - Ease of use: common scenarios should be reachable through the `LocalIO` facade and run-builder extension methods
+- Explicit environment ownership: tests should make working-directory ownership and cleanup behavior easy to understand
 
 ## 11. Risks and Technical Debt
 
-- Platform coupling: `CmdTrigger` is Windows-specific because it shells through `CMD.EXE`
+- Shell differences remain a real risk: command text that is valid on one host shell may need adaptation on another
 - Documentation lag: package README still contains older package/namespace forms and should be aligned with the current public API
 - Narrow event coverage: only file existence polling is currently modeled; richer file-system event support is not yet present
 - Environment sensitivity: local tests can become brittle if they rely on machine-specific paths, shell state, or permissions
-- Limited automated coverage breadth: unit tests exist, but there is no broader multi-platform or full sample-suite validation pipeline
+- Limited automated coverage breadth: unit tests exist, but there is no broader multi-platform or full sample-suite validation pipeline yet
 
 ## 12. Glossary
 

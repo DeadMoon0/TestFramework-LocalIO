@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Exceptions;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Variables;
@@ -41,7 +42,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     /// <inheritdoc />
     public override void OnPinReference(VariableStore variableStore, ScopedLogger logger)
     {
-        pinnedPath = path.GetValue(variableStore) ?? throw new InvalidOperationException("The Path to a File cannot be NULL.");
+        pinnedPath = path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
     }
 
     /// <inheritdoc />
@@ -70,7 +71,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     internal string GetPath(VariableStore variableStore)
     {
         if (IsPinned) return pinnedPath;
-        return path.GetValue(variableStore) ?? throw new InvalidOperationException("The Path to a File cannot be NULL.");
+        return path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
     }
 
     internal bool ShouldRemoveParentDirectoryIfEmpty => removeParentDirectoryIfEmpty;
