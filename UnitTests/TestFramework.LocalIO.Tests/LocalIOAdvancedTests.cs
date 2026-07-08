@@ -37,7 +37,9 @@ public class LocalIOAdvancedTests
                 .RunAsync();
 
             run.EnsureRanToCompletion();
-            Assert.Equal(0, Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result).ExitCode);
+            CmdResultContext result = Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(tempDir, result.WorkingDirectory);
         }
         finally
         {
@@ -276,8 +278,9 @@ public class LocalIOAdvancedTests
             TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
 
             Assert.Contains(exception.FailedSteps, step =>
-                step.StepException is InvalidOperationException invalidOperationException &&
-                invalidOperationException.Message == "FindArtifactsAs expected 1 artifact names but finder produced 2 results.");
+                step.StepException is ArtifactCountMismatchException artifactCountMismatchException &&
+                artifactCountMismatchException.Message.Contains("expected 1 artifact name", StringComparison.OrdinalIgnoreCase) &&
+                artifactCountMismatchException.Message.Contains("finder produced 2 result", StringComparison.OrdinalIgnoreCase));
         }
         finally
         {
