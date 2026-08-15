@@ -45,10 +45,11 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
         string resolvedPath = ResolvePath(variableStore);
         logger.LogInformation($"Waiting for the file \"{resolvedPath}\" to appear.");
 
-        // CoreRunner races the step's cancellation token against its own Task.WaitAsync(timeout),
-        // and the plain "The operation has timed out." of that WaitAsync wins whenever the step
-        // has to unwind first. Giving up a hair earlier on our own deadline lets the descriptive
-        // message get there first, where CoreRunner's `catch (TimeoutException)` preserves it verbatim.
+        // The step has to give up marginally before its own timeout to say anything useful.
+        // CoreRunner awaits the step with Task.WaitAsync(token), which throws the instant the
+        // timeout token fires and abandons the running task - so an exception the step raises at
+        // that same moment is never observed, and the caller only ever sees the generic
+        // "Step '...' timed out". Finishing first is the only way the path reaches the user.
         using CancellationTokenSource deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         TimeSpan ownDeadline = GetOwnDeadline(variableStore);
         if (ownDeadline > TimeSpan.Zero)
@@ -58,25 +59,36 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
         {
             return await base.DoEventPolling(serviceProvider, variableStore, artifactStore, logger, deadline.Token);
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException(
                 $"The file \"{resolvedPath}\" never appeared. Check that the producing step really writes to this path - "
                 + "a relative path resolves against the LocalIO run directory when the timeline calls UseRunDirectory(), "
-                + "and against the process working directory otherwise, so a mismatched working directory is the usual cause.");
+                + "and against the process working directory otherwise, so a mismatched working directory is the usual cause.",
+                exception);
         }
     }
 
     /// <summary>
     /// Returns the deadline this event enforces itself, slightly ahead of the step timeout.
     /// </summary>
+    /// <remarks>
+    /// The margin is a tenth of the timeout, never below 100 ms so a loaded machine cannot eat it,
+    /// and never above a second so a long wait is not meaningfully shortened. An earlier version
+    /// capped it at 50 ms, which a two-core CI runner lost often enough to make the message flaky.
+    /// </remarks>
     private TimeSpan GetOwnDeadline(VariableStore variableStore)
     {
         TimeSpan stepTimeout = TimeOutOptions.TimeOut.GetValue(variableStore);
-        if (stepTimeout <= TimeSpan.Zero || stepTimeout > TimeSpan.FromDays(1)) return TimeSpan.Zero;
+        if (stepTimeout <= TimeSpan.Zero || stepTimeout > TimeSpan.FromDays(1))
+            return TimeSpan.Zero;
 
-        TimeSpan margin = TimeSpan.FromMilliseconds(Math.Min(50, stepTimeout.TotalMilliseconds * 0.1));
-        return stepTimeout - margin;
+        double marginMs = Math.Clamp(stepTimeout.TotalMilliseconds * 0.1, 100, 1000);
+
+        // A timeout too short to carry the margin keeps a usable slice rather than going negative.
+        return marginMs >= stepTimeout.TotalMilliseconds
+            ? TimeSpan.FromMilliseconds(stepTimeout.TotalMilliseconds / 2)
+            : stepTimeout - TimeSpan.FromMilliseconds(marginMs);
     }
 
     /// <inheritdoc />
