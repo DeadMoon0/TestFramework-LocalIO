@@ -19,12 +19,27 @@
 		<PackageReleaseNotes>Multi-target net8.0 and net10.0</PackageReleaseNotes>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<PackageIconSourcePath>$(MSBuildThisFileDirectory)..\Modules\TestFramework-Common\Assets\Icon.png</PackageIconSourcePath>
+	</PropertyGroup>
+
 	<ItemGroup>
-		<None Include="..\Modules\TestFramework-Common\Assets\Icon.png">
+		<None Include="$(PackageIconSourcePath)">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
+
+	<!--
+	  The package icon lives in the TestFramework-Common submodule. A clone that skips submodules
+	  leaves it empty, and pack then fails with NuGet's opaque "icon file does not exist in the
+	  package" / "Could not find a part of the path" error, which never mentions submodules.
+	  Scoped to GenerateNuspec so ordinary builds and `dotnet test` stay unaffected.
+	-->
+	<Target Name="EnsurePackageIconSubmoduleIsInitialized" BeforeTargets="GenerateNuspec">
+		<Error Condition="!Exists('$(PackageIconSourcePath)')"
+		       Text="The package icon &quot;$(PackageIconSourcePath)&quot; is missing because the TestFramework-Common submodule is not checked out. Run 'git submodule update --init --recursive' in the repository root and pack again." />
+	</Target>
 
 	<ItemGroup>
 	  <PackageReference Include="TestFramework.Core" Version="0.1.9" />

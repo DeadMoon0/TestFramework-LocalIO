@@ -18,6 +18,17 @@ Install the package into your test project:
 dotnet add package TestFramework.LocalIO
 ```
 
+## Clone This Repository
+
+The package icon lives in the `TestFramework-Common` submodule, so clone with submodules:
+
+```bash
+git clone --recurse-submodules https://github.com/DeadMoon0/TestFramework-LocalIO.git
+```
+
+Already cloned without them? Run `git submodule update --init --recursive`. Building and
+`dotnet test` work either way; only `dotnet pack` needs the submodule.
+
 ## Quickstart
 
 `UseRunDirectory()` gives the run its own directory, resolves every relative LocalIO path inside it,
