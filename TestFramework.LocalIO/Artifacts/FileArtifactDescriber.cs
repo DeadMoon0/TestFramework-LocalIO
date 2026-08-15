@@ -22,7 +22,9 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
             File.Delete(path);
         }
 
-        if (reference.ShouldRemoveParentDirectoryIfEmpty)
+        // Only ever remove a directory this run created. Otherwise the opt-in would silently take
+        // out a pre-existing directory that merely happened to be empty afterwards.
+        if (reference.ShouldRemoveParentDirectoryIfEmpty && reference.SetupCreatedParentDirectory)
         {
             string? parentDirectory = Path.GetDirectoryName(path);
             if (!string.IsNullOrWhiteSpace(parentDirectory)
@@ -40,6 +42,16 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
     public override async Task Setup(IServiceProvider serviceProvider, FileArtifactData data, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {
         string path = reference.GetPath(variableStore);
+
+        // Setup used to fail with a raw DirectoryNotFoundException while cleanup was already able
+        // to remove a directory - create the parent so the two sides are symmetric.
+        string? parentDirectory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(parentDirectory) && !Directory.Exists(parentDirectory))
+        {
+            Directory.CreateDirectory(parentDirectory);
+            reference.MarkSetupCreatedParentDirectory();
+            logger.LogInformation($"Created the parent directory \"{parentDirectory}\" for the file artifact.");
+        }
 
         // Stream the content instead of File.WriteAllBytesAsync: the ReadOnlyMemory overload of
         // that method only exists from .NET 9, and this package also targets net8.0.

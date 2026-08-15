@@ -17,6 +17,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     private string pinnedPath = "";
     private bool hasPinnedPath;
     private bool removeParentDirectoryIfEmpty;
+    private bool setupCreatedParentDirectory;
 
     private VariableReference<string> path;
 
@@ -101,6 +102,20 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     }
 
     internal bool ShouldRemoveParentDirectoryIfEmpty => removeParentDirectoryIfEmpty;
+
+    /// <summary>
+    /// Records that Setup had to create the parent directory of this artifact.
+    /// </summary>
+    internal void MarkSetupCreatedParentDirectory() => setupCreatedParentDirectory = true;
+
+    /// <summary>
+    /// Gets whether Setup created the parent directory of this artifact.
+    /// </summary>
+    /// <remarks>
+    /// Cleanup only removes a parent directory it created itself, so opting into
+    /// <see cref="RemoveParentDirectoryIfEmpty"/> cannot take out a directory that was already there.
+    /// </remarks>
+    internal bool SetupCreatedParentDirectory => setupCreatedParentDirectory;
 
     /// <inheritdoc />
     public override string ToString() => hasPinnedPath ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
