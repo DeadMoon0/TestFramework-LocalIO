@@ -139,6 +139,24 @@ public class RunDirectoryTests
         }
     }
 
+    [Fact]
+    public async Task FileArtifactFolderFinder_WithAMissingFolder_WarnsInsteadOfThrowing()
+    {
+        string missingFolder = Path.Combine(Path.GetTempPath(), $"localio-missing-{Guid.NewGuid():N}");
+
+        Timeline timeline = Timeline.Create()
+            .FindArtifact("single", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+            .FindArtifacts("many", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+            .Build();
+
+        TimelineRun run = await timeline.SetupRun()
+            .AddVariable("folder", missingFolder)
+            .RunAsync();
+
+        run.EnsureRanToCompletion();
+        Assert.Empty(run.ArtifactStore.GetAll());
+    }
+
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(Path.GetTempPath(), $"localio-rundir-{Guid.NewGuid():N}");
