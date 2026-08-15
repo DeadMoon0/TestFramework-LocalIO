@@ -123,24 +123,43 @@ public class LocalIOAdvancedTests
     [Fact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
-    public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationError()
+    public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationErrorAndKillsTheProcessTree()
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
 
-        Timeline timeline = Timeline.Create()
-            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("ping 127.0.0.1 -n 6 > nul")))
-            .Name("cmd")
-            .WithTimeOut(TimeSpan.FromMilliseconds(100))
-            .Build();
+        string tempDir = CreateTempDirectory();
+        string sentinelPath = Path.Combine(tempDir, "sentinel.txt");
 
-        TimelineRun run = await timeline.SetupRun().RunAsync();
+        try
+        {
+            // The sentinel is only written once ping finishes, so it proves the grandchild kept
+            // running (and kept writing files) after the run had already returned.
+            Timeline timeline = Timeline.Create()
+                .Trigger(LocalIOExt.Trigger.Cmd(
+                    Var.Const("ping 127.0.0.1 -n 6 > nul && echo leaked > sentinel.txt"),
+                    Var.Const(tempDir)))
+                .Name("cmd")
+                .WithTimeOut(TimeSpan.FromMilliseconds(100))
+                .Build();
 
-        TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+            TimelineRun run = await timeline.SetupRun().RunAsync();
 
-        Assert.Contains(exception.FailedSteps, step => step.StepException is TimeoutException);
+            TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+
+            Assert.Contains(exception.FailedSteps, step => step.StepException is TimeoutException);
+            Assert.False(File.Exists(sentinelPath), "The command process was still alive when the run returned.");
+
+            // ping would have finished well inside this window if it had survived the cancellation.
+            await Task.Delay(TimeSpan.FromSeconds(8));
+            Assert.False(File.Exists(sentinelPath), "The command process outlived the cancelled run and kept writing files.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
