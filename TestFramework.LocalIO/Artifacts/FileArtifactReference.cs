@@ -15,6 +15,7 @@ namespace TestFramework.LocalIO.Artifacts;
 public class FileArtifactReference : ArtifactReference<FileArtifactReference, FileArtifactDescriber, FileArtifactData>
 {
     private string pinnedPath = "";
+    private bool hasPinnedPath;
     private bool removeParentDirectoryIfEmpty;
 
     private VariableReference<string> path;
@@ -51,9 +52,17 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The first pin wins. Core calls this directly instead of going through <c>PinReference</c>,
+    /// so <c>IsPinned</c> cannot be trusted here: without its own flag the reference would keep
+    /// re-resolving the variable, and rebinding it mid-run would retarget the cleanup delete onto
+    /// a different file than Setup wrote.
+    /// </remarks>
     public override void OnPinReference(VariableStore variableStore, ScopedLogger logger)
     {
+        if (hasPinnedPath) return;
         pinnedPath = ResolvePath(variableStore);
+        hasPinnedPath = true;
     }
 
     /// <inheritdoc />
@@ -81,7 +90,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
 
     internal string GetPath(VariableStore variableStore)
     {
-        if (IsPinned) return pinnedPath;
+        if (hasPinnedPath) return pinnedPath;
         return ResolvePath(variableStore);
     }
 
@@ -94,5 +103,5 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     internal bool ShouldRemoveParentDirectoryIfEmpty => removeParentDirectoryIfEmpty;
 
     /// <inheritdoc />
-    public override string ToString() => IsPinned ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
+    public override string ToString() => hasPinnedPath ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
 }
