@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Timelines;
@@ -22,6 +25,30 @@ public static class FileArtifactExtension
     public static ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> GetFileArtifact(this ArtifactStore store, ArtifactIdentifier identifier)
     {
         return store.GetArtifact(FileArtifactKind.Kind, identifier);
+    }
+
+    /// <summary>
+    /// Gets every file artifact that <c>FindArtifacts(baseIdentifier, ...)</c> generated, in
+    /// identifier order.
+    /// </summary>
+    /// <param name="store">The artifact store.</param>
+    /// <param name="baseIdentifier">The base identifier passed to <c>FindArtifacts</c>.</param>
+    /// <returns>The <c>baseIdentifier_0</c>, <c>baseIdentifier_1</c>, ... instances, ordered by index.</returns>
+    /// <remarks>
+    /// Discovery generates the identifiers by appending <c>_0</c>, <c>_1</c>, ... to the base
+    /// identifier. The index order is the discovery order, which is filesystem-dependent - sort by
+    /// <see cref="FileArtifactReference.FilePath"/> when the assertion needs a deterministic order.
+    /// </remarks>
+    public static IReadOnlyList<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> GetFileArtifacts(this ArtifactStore store, string baseIdentifier)
+    {
+        string prefix = baseIdentifier + "_";
+        return store.GetAll()
+            .Select(instance => instance.Identifier.Identifier)
+            .Where(identifier => identifier.StartsWith(prefix, StringComparison.Ordinal)
+                && int.TryParse(identifier.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out _))
+            .OrderBy(identifier => int.Parse(identifier[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture))
+            .Select(identifier => store.GetFileArtifact(identifier))
+            .ToList();
     }
 
     /// <summary>

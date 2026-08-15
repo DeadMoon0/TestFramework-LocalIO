@@ -151,10 +151,14 @@ If a scenario resolves multiple files, do not depend on directory enumeration or
 
 Normalize first, then assert:
 
+`FindArtifacts("exports", ...)` generates the identifiers `exports_0`, `exports_1`, ... in discovery
+order. `GetFileArtifacts("exports")` returns exactly those instances, ordered by that index, and
+`Reference.FilePath` is the resolved path each one was pinned to.
+
 ```csharp
 IReadOnlyList<string> orderedPaths = run.ArtifactStore
     .GetFileArtifacts("exports")
-    .Select(x => x.Last.Path)
+    .Select(x => x.Reference.FilePath)
     .OrderBy(path => path, StringComparer.Ordinal)
     .ToList();
 ```

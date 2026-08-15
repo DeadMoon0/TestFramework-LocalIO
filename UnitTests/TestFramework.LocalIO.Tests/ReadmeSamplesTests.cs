@@ -1,4 +1,5 @@
-﻿using TestFramework.Core.Timelines;
+﻿using TestFramework.Core.Exceptions;
+using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO.Artifacts;
 
@@ -73,6 +74,50 @@ public class ReadmeSamplesTests
         run.EnsureRanToCompletion();
         string content = run.ArtifactStore.GetFileArtifact("inputFile").Last.DataAsUtf8String;
         Assert.Equal("hello world", content);
+    }
+
+    [Fact]
+    public async Task DeterministicMultiFileAssertions_OrdersDiscoveredArtifactsByPath()
+    {
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "b.csv"), "b");
+            File.WriteAllText(Path.Combine(tempDir, "a.csv"), "a");
+            File.WriteAllText(Path.Combine(tempDir, "c.csv"), "c");
+
+            Timeline timeline = Timeline.Create()
+                .FindArtifacts("exports", new FileArtifactFolderFinder(Var.Const(tempDir)))
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun().RunAsync();
+
+            run.EnsureRanToCompletion();
+
+            IReadOnlyList<string> orderedPaths = run.ArtifactStore
+                .GetFileArtifacts("exports")
+                .Select(x => x.Reference.FilePath)
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.Equal(
+                [Path.Combine(tempDir, "a.csv"), Path.Combine(tempDir, "b.csv"), Path.Combine(tempDir, "c.csv")],
+                orderedPaths);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public void FilePath_BeforeTheRunResolvesTheReference_ExplainsItself()
+    {
+        FileArtifactReference reference = LocalIOExt.Artifacts.FileRef(Var.Const("out.txt"));
+
+        FrameworkStateException exception = Assert.Throws<FrameworkStateException>(() => reference.FilePath);
+        Assert.Contains("not resolved yet", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string CreateTempDirectory()

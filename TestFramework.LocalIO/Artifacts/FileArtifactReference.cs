@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Exceptions;
@@ -81,6 +82,18 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
             Data = new FileArtifactData(await File.ReadAllBytesAsync(_path)) { Identifier = versionIdentifier },
         };
     }
+
+    /// <summary>
+    /// Gets the resolved path this reference is pinned to.
+    /// </summary>
+    /// <remarks>Named <c>FilePath</c> rather than <c>Path</c> so it does not shadow <see cref="System.IO.Path"/> inside this class.</remarks>
+    /// <exception cref="FrameworkStateException">Thrown when the reference has not been resolved yet.</exception>
+    // Core snapshots references for the debugger by serializing their public properties, so a
+    // property that throws before the pin has to stay out of that snapshot.
+    [IgnoreDataMember]
+    public string FilePath => hasPinnedPath
+        ? pinnedPath
+        : throw new FrameworkStateException("The file artifact path is not resolved yet. Read FilePath after the run has registered, discovered or set up the artifact.");
 
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
