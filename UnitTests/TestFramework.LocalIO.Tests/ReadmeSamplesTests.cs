@@ -1,4 +1,4 @@
-using TestFramework.Core.Timelines;
+﻿using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO.Artifacts;
 
@@ -8,15 +8,10 @@ namespace TestFramework.LocalIO.Tests;
 // If you update a test here, update the corresponding README sample as well.
 public class ReadmeSamplesTests
 {
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     public async Task QuickStart_CmdWaitAndRegisterArtifact_CompletesAndReadsFile()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string tempDir = CreateTempDirectory();
         const string outputFileName = "out.txt";
         string outputPath = Path.Combine(tempDir, outputFileName);

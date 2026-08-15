@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Environment;
 using TestFramework.Core.Exceptions;
@@ -11,16 +11,11 @@ namespace TestFramework.LocalIO.Tests;
 
 public class LocalIOAdvancedTests
 {
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_Execute_UsesConfiguredWorkingDirectory()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string tempDir = CreateTempDirectory();
 
         try
@@ -47,16 +42,11 @@ public class LocalIOAdvancedTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_Execute_ReturnsProcessExitCodeForFailingCommand()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         Timeline timeline = Timeline.Create()
             .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("exit /b 7")))
             .Name("cmd")
@@ -68,16 +58,11 @@ public class LocalIOAdvancedTests
         Assert.Equal(7, Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result).ExitCode);
     }
 
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_BindsUsefulOutputs_IntoTimelineVariables()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string tempDir = CreateTempDirectory();
 
         try
@@ -120,16 +105,11 @@ public class LocalIOAdvancedTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public async Task CmdTrigger_WithTimelineTimeout_FailsWithCancellationErrorAndKillsTheProcessTree()
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         string tempDir = CreateTempDirectory();
         string sentinelPath = Path.Combine(tempDir, "sentinel.txt");
 
@@ -155,6 +135,67 @@ public class LocalIOAdvancedTests
             // ping would have finished well inside this window if it had survived the cancellation.
             await Task.Delay(TimeSpan.FromSeconds(8));
             Assert.False(File.Exists(sentinelPath), "The command process outlived the cancelled run and kept writing files.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [UnixFact]
+    [Trait("Category", "UnixOnly")]
+    public async Task CmdTrigger_OnUnix_RunsMultiWordCommandsWithRedirection()
+    {
+        string tempDir = CreateTempDirectory();
+        string outputPath = Path.Combine(tempDir, "out.txt");
+
+        try
+        {
+            // Passing this through ProcessStartInfo.Arguments tokenizes it, so the shell would run
+            // a bare "echo" with $0 = "hello" and exit 0 without ever creating the file.
+            Timeline timeline = Timeline.Create()
+                .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello world > out.txt"), Var.Const(tempDir)))
+                .Name("cmd")
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun().RunAsync();
+
+            run.EnsureRanToCompletion();
+            Assert.Equal(0, Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result).ExitCode);
+            Assert.True(File.Exists(outputPath), "The redirection never produced a file, so the command was tokenized.");
+            Assert.Equal("hello world", File.ReadAllText(outputPath).Trim());
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task CmdTrigger_WithOutputLargerThanThePipeBuffer_DoesNotDeadlock()
+    {
+        const int lineCount = 20000;
+        string tempDir = CreateTempDirectory();
+        string sourcePath = Path.Combine(tempDir, "big.txt");
+
+        try
+        {
+            File.WriteAllLines(sourcePath, Enumerable.Range(0, lineCount).Select(i => $"line-{i:D6}"));
+            string command = OperatingSystem.IsWindows() ? "type big.txt" : "cat big.txt";
+
+            Timeline timeline = Timeline.Create()
+                .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(tempDir)))
+                .Name("cmd")
+                .WithTimeOut(TimeSpan.FromSeconds(60))
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun().RunAsync();
+
+            run.EnsureRanToCompletion();
+            CmdResultContext result = Assert.IsType<CmdResultContext>(run.Step("cmd").LastResult.Result);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(lineCount, result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+            Assert.Contains($"line-{lineCount - 1:D6}", result.StandardOutput, StringComparison.Ordinal);
         }
         finally
         {

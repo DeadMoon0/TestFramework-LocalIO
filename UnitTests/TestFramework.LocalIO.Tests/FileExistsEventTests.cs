@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
@@ -81,7 +81,7 @@ public class FileExistsEventTests
             });
     }
 
-    [Fact]
+    [WindowsFact]
     [Trait("Category", "WindowsOnly")]
     [SupportedOSPlatform("windows")]
     public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()

@@ -12,14 +12,24 @@ concurrency:
 
 jobs:
   unit-tests:
-    name: unit-tests
-    runs-on: ubuntu-latest
+    name: unit-tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            filter: Category!=WindowsOnly
+          - os: windows-latest
+            filter: Category!=UnixOnly
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -32,4 +42,4 @@ jobs:
         run: dotnet restore UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj
 
       - name: Run unit tests
-        run: dotnet test UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj --configuration Release --no-restore --filter "Category!=WindowsOnly" --logger "trx"
+        run: dotnet test UnitTests/TestFramework.LocalIO.Tests/TestFramework.LocalIO.Tests.csproj --configuration Release --no-restore --filter "${{ matrix.filter }}" --logger "trx"
