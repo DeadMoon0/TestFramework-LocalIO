@@ -73,9 +73,12 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     /// Returns the deadline this event enforces itself, slightly ahead of the step timeout.
     /// </summary>
     /// <remarks>
-    /// The margin is a tenth of the timeout, never below 100 ms so a loaded machine cannot eat it,
-    /// and never above a second so a long wait is not meaningfully shortened. An earlier version
-    /// capped it at 50 ms, which a two-core CI runner lost often enough to make the message flaky.
+    /// The margin has to cover more than the polling itself. This deadline is measured from the
+    /// moment the event starts polling, while the step timeout is measured from the moment the step
+    /// starts, and on a loaded machine the gap between those two is real - large enough, on a
+    /// two-core CI runner, to swallow a small margin entirely and let the generic message win.
+    /// So: a sixth of the timeout, never below 200 ms, never above a second so that a long wait is
+    /// not meaningfully shortened. Earlier versions used 50 ms and then 100 ms; CI lost both.
     /// </remarks>
     private TimeSpan GetOwnDeadline(VariableStore variableStore)
     {
@@ -83,7 +86,7 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
         if (stepTimeout <= TimeSpan.Zero || stepTimeout > TimeSpan.FromDays(1))
             return TimeSpan.Zero;
 
-        double marginMs = Math.Clamp(stepTimeout.TotalMilliseconds * 0.1, 100, 1000);
+        double marginMs = Math.Clamp(stepTimeout.TotalMilliseconds / 6, 200, 1000);
 
         // A timeout too short to carry the margin keeps a usable slice rather than going negative.
         return marginMs >= stepTimeout.TotalMilliseconds

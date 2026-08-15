@@ -19,9 +19,15 @@ public class ErrorQualityTests
 
         try
         {
+            // Three seconds, not the couple of hundred milliseconds this used to use. The event has
+            // to give up before the step timeout to report the path at all (see the framework
+            // limitation in AUDIT-STATUS.md), and its margin is measured from when the event starts
+            // polling while the step timeout is measured from when the step starts. On a loaded
+            // two-core runner the gap between those two moments was larger than the whole margin,
+            // so the generic message won and this test failed for a reason it does not test.
             Timeline timeline = Timeline.Create()
                 .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(missingPath), Var.Const(TimeSpan.FromMilliseconds(20))))
-                .WithTimeOut(TimeSpan.FromMilliseconds(200))
+                .WithTimeOut(TimeSpan.FromSeconds(5))
                 .Name("wait")
                 .Build();
 
