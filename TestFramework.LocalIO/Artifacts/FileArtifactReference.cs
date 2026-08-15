@@ -39,16 +39,27 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         return this;
     }
 
+    /// <summary>
+    /// Marks the file as merely observed, so cleanup never deletes it.
+    /// </summary>
+    /// <remarks>Use this for files the run did not create - registering or discovering a file is not a licence to delete it.</remarks>
+    /// <returns>The same artifact reference for fluent chaining.</returns>
+    public FileArtifactReference Observed()
+    {
+        CanDeconstruct = false;
+        return this;
+    }
+
     /// <inheritdoc />
     public override void OnPinReference(VariableStore variableStore, ScopedLogger logger)
     {
-        pinnedPath = path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
+        pinnedPath = ResolvePath(variableStore);
     }
 
     /// <inheritdoc />
     public override async Task<ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> ResolveToDataAsync(IServiceProvider serviceProvider, ArtifactVersionIdentifier versionIdentifier, VariableStore variableStore, ScopedLogger logger)
     {
-        string _path = path.GetValue(variableStore) ?? throw new ArgumentNullException();
+        string _path = ResolvePath(variableStore);
         if (!File.Exists(_path)) return new ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
         {
             Found = false,
@@ -71,7 +82,13 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     internal string GetPath(VariableStore variableStore)
     {
         if (IsPinned) return pinnedPath;
-        return path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
+        return ResolvePath(variableStore);
+    }
+
+    private string ResolvePath(VariableStore variableStore)
+    {
+        string raw = path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
+        return LocalPath.Resolve(raw, variableStore);
     }
 
     internal bool ShouldRemoveParentDirectoryIfEmpty => removeParentDirectoryIfEmpty;

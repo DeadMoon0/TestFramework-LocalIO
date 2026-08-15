@@ -36,7 +36,9 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     /// <inheritdoc />
     public override async Task<SequentialPollingResult<EmptyStepResultContext>> OnSequentialPolling(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
-        string _path = path.GetValue(variableStore) ?? throw new ArgumentNullException(nameof(path), "The Path cannot be Null.");
+        string _path = LocalPath.Resolve(
+            path.GetValue(variableStore) ?? throw new ArgumentNullException(nameof(path), "The Path cannot be Null."),
+            variableStore);
         return new SequentialPollingResult<EmptyStepResultContext>(File.Exists(_path), null, pollDelay?.GetValue(variableStore) ?? TimeSpan.FromSeconds(0.5));
     }
 

@@ -52,14 +52,15 @@ public class LocalIOArtifacts
 public class LocalIOTrigger
 {
     /// <summary>
-    /// Creates a command trigger that runs in the current working directory.
+    /// Creates a command trigger that runs in the LocalIO run directory, or - when the timeline
+    /// declared none - in the current working directory as it is at run time.
     /// </summary>
     /// <param name="command">The shell command to execute.</param>
     /// <returns>A command trigger.</returns>
     /// <remarks>On Windows this uses <c>CMD.EXE /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to <c>/bin/sh -c</c>.</remarks>
     public CmdTrigger Cmd(VariableReference<string> command)
     {
-        return new CmdTrigger(command, Environment.CurrentDirectory);
+        return new CmdTrigger(command);
     }
 
     /// <summary>

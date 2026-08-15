@@ -28,7 +28,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
             return Task.FromResult<ArtifactFinderResult?>(null);
         }
 
-        var artifactReference = new FileArtifactReference(filePath);
+        var artifactReference = new FileArtifactReference(filePath).Observed();
         return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(artifactReference));
     }
 
@@ -39,7 +39,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
     public override Task<ArtifactFinderResultMulti> FindMultiAsync(IServiceProvider serviceProvider, VariableStore variableStore, ScopedLogger logger, CancellationToken cancellationToken)
     {
         ArtifactFinderResultMulti result = new ArtifactFinderResultMulti(Directory.GetFiles(folderPath.GetRequiredValue(variableStore))
-            .Select((filePath, index) => new ArtifactFinderResult(new FileArtifactReference(filePath)))
+            .Select((filePath, index) => new ArtifactFinderResult(new FileArtifactReference(filePath).Observed()))
             .ToArray());
         return Task.FromResult(result);
     }

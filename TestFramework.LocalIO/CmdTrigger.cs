@@ -20,8 +20,12 @@ namespace TestFramework.LocalIO;
 /// and falls back to <c>/bin/sh -c</c> if bash is not present.
 /// </summary>
 /// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">The working directory for the command.</param>
-public class CmdTrigger(VariableReference<string> command, VariableReference<string> workingDirectory) : Step<CmdResultContext>
+/// <param name="workingDirectory">
+/// The working directory for the command. When omitted the command runs in the LocalIO run
+/// directory, or - when the timeline declared none - in <see cref="Environment.CurrentDirectory"/>
+/// as it is at RUN time.
+/// </param>
+public class CmdTrigger(VariableReference<string> command, VariableReference<string>? workingDirectory = null) : Step<CmdResultContext>
 {
     /// <inheritdoc />
     public override bool DoesReturn => true;
@@ -44,7 +48,10 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
         string? cmdText = command.GetValue(variableStore);
         if (cmdText is null)
             throw new FrameworkStateException("CmdTrigger command is null.");
-        string workingDir = workingDirectory.GetValue(variableStore) ?? Environment.CurrentDirectory;
+        string? configuredWorkingDir = workingDirectory?.GetValue(variableStore);
+        string workingDir = configuredWorkingDir is null
+            ? LocalPath.TryGetRunDirectory(variableStore) ?? Environment.CurrentDirectory
+            : LocalPath.Resolve(configuredWorkingDir, variableStore);
         ProcessStartInfo info;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -170,7 +177,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     {
         if (command.HasIdentifier)
             contract.Inputs.Add(new StepIOEntry(command.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
-        if (workingDirectory.HasIdentifier)
+        if (workingDirectory is not null && workingDirectory.HasIdentifier)
             contract.Inputs.Add(new StepIOEntry(workingDirectory.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
     }
 }
