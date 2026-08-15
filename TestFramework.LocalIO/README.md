@@ -185,9 +185,10 @@ Use sorting, stable naming, or explicit projection keys before asserting counts 
 
 ## Additional Guidance
 
-- `FileArtifactFolderFinder.FindMultiAsync(...)` returns files in the order reported by `Directory.GetFiles(...)`; do not depend on that order as a stable business rule.
+- `FileArtifactFolderFinder.FindMultiAsync(...)` returns files in the order reported by `Directory.EnumerateFiles(...)`; do not depend on that order as a stable business rule.
 - See the showroom/basic examples in this repository when you want a larger end-to-end usage pattern around file artifacts and timeline runs.
 
-## Target Framework
+## Target Frameworks
 
 - .NET 8 (`net8.0`)
+- .NET 10 (`net10.0`)

@@ -18,11 +18,11 @@ The solution is aimed at integration-style tests that need local preparation, fi
 
 ## 2. Constraints
 
-- Runtime target is .NET 8 (`net8.0`).
+- Runtime targets are .NET 8 (`net8.0`) and .NET 10 (`net10.0`); the package multi-targets both.
 - The package extends `TestFramework.Core` and therefore follows its timeline, step, event, and artifact abstractions.
 - Command execution uses `CMD.EXE` on Windows and a `bash`/`sh` fallback path on Unix-like hosts, so the package support contract is cross-platform shell-compatible rather than shell-identical.
 - The package is distributed as a NuGet package with README/icon metadata in the project file.
-- CI currently validates behavior through unit tests only; there is no dedicated E2E pipeline for local machine scenarios.
+- CI validates behavior through unit tests on both `ubuntu-latest` and `windows-latest`; there is no dedicated E2E pipeline for local machine scenarios.
 
 ## 3. System Scope and Context
 
