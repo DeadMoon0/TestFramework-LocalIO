@@ -1,6 +1,6 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading;
@@ -52,6 +52,9 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
             info = new ProcessStartInfo
             {
                 FileName = "CMD.EXE",
+                // Intentionally NOT ArgumentList: CMD.EXE /C consumes the raw remainder of the
+                // command line. Going through ArgumentList would quote anything containing a
+                // space and break operators such as &&, > and 1>&2.
                 Arguments = "/C " + cmdText,
                 UseShellExecute = false,
                 WorkingDirectory = workingDir,
@@ -63,26 +66,100 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
         {
             // Prefer bash if available, otherwise fall back to sh
             string shell = File.Exists("/bin/bash") ? "/bin/bash" : "/bin/sh";
-            string shellArgsPrefix = "-c ";
             info = new ProcessStartInfo
             {
                 FileName = shell,
-                Arguments = shellArgsPrefix + cmdText,
                 UseShellExecute = false,
                 WorkingDirectory = workingDir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+            // The whole command must arrive as ONE argv entry. Assigning it to Arguments would
+            // tokenize it, so "echo hello > out.txt" would run bare "echo" with $0 = "hello".
+            info.ArgumentList.Add("-c");
+            info.ArgumentList.Add(cmdText);
         }
-        Process process = Process.Start(info) ?? throw new FrameworkStateException("Could not start the CMD process.");
-        await process.WaitForExitAsync(cancellationToken);
-        string outStd = process.StandardOutput.ReadToEnd();
-        string errorStd = process.StandardError.ReadToEnd();
+
+        using Process process = Process.Start(info) ?? throw new FrameworkStateException("Could not start the CMD process.");
+
+        // Drain both pipes concurrently BEFORE waiting for exit: a child that writes more than the
+        // pipe buffer (~4 KB on Windows, ~64 KB on Linux) blocks forever otherwise.
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+        string outStd;
+        string errorStd;
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+            outStd = await standardOutputTask;
+            errorStd = await standardErrorTask;
+        }
+        catch (OperationCanceledException)
+        {
+            KillProcessTree(process, logger);
+            Observe(standardOutputTask);
+            Observe(standardErrorTask);
+            throw;
+        }
 
         if (!String.IsNullOrWhiteSpace(outStd)) logger.LogInformation(outStd);
         if (!String.IsNullOrWhiteSpace(errorStd)) logger.LogWarning("[External stderr]\n" + errorStd);
 
         return new CmdResultContext(process.ExitCode, outStd, errorStd, cmdText, workingDir);
+    }
+
+    /// <summary>
+    /// Kills the shell and everything it spawned. Killing only the shell would orphan the real
+    /// command, because both <c>CMD.EXE /C</c> and <c>bash -c</c> run it as a grandchild.
+    /// </summary>
+    private static void KillProcessTree(Process process, ScopedLogger logger)
+    {
+        try
+        {
+            if (process.HasExited) return;
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // The process already exited and its handle is gone - nothing left to kill.
+            return;
+        }
+        catch (Win32Exception exception)
+        {
+            logger.LogWarning($"Could not kill the cancelled command process tree: {exception.Message}");
+            return;
+        }
+        catch (NotSupportedException exception)
+        {
+            logger.LogWarning($"Could not kill the cancelled command process tree: {exception.Message}");
+            return;
+        }
+
+        try
+        {
+            // Bounded wait so the handle is released and the redirected pipes close.
+            process.WaitForExit(5000);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (Win32Exception)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Marks an abandoned pipe read as observed so its cancellation does not surface as an
+    /// unobserved task exception.
+    /// </summary>
+    private static void Observe(Task task)
+    {
+        _ = task.ContinueWith(
+            static completed => _ = completed.Exception,
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     /// <inheritdoc />
