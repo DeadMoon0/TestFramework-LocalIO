@@ -20,9 +20,12 @@ dotnet add package TestFramework.LocalIO
 
 ## Quickstart
 
+`UseRunDirectory()` gives the run its own directory, resolves every relative LocalIO path inside it,
+and removes it again during cleanup - so the sample leaves nothing behind.
+
 ```csharp
 using System;
-using System.IO;
+using System.Threading.Tasks;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO;
@@ -33,12 +36,11 @@ public class LocalIoSample
 	[Fact]
 	public async Task CanExecuteCommandAndWaitForFile()
 	{
-		const string outputFileName = "out.txt";
-		string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
-
 		Timeline timeline = Timeline.Create()
-			.Trigger(LocalIOExt.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
-			.WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath)))
+			.UseRunDirectory()
+			.Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello > out.txt")))
+			.WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt")))
+			.WithTimeOut(TimeSpan.FromSeconds(10))
 			.Build();
 
 		TimelineRun run = await timeline.SetupRun().RunAsync();

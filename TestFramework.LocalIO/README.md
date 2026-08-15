@@ -16,18 +16,15 @@ dotnet add package TestFramework.LocalIO
 
 ```csharp
 using System;
-using System.IO;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO;
 
-const string outputFileName = "out.txt";
-string outputPath = Path.Combine(Environment.CurrentDirectory, outputFileName);
-
 Timeline timeline = Timeline.Create()
-    .Trigger(LocalIOExt.Trigger.Cmd(Var.Const($"echo hello > {outputFileName}")))
-    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath))).WithTimeOut(TimeSpan.FromSeconds(10))
-    .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const(outputPath)))
+    .UseRunDirectory()
+    .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello > out.txt")))
+    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt"))).WithTimeOut(TimeSpan.FromSeconds(10))
+    .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const("out.txt")))
     .Build();
 
 TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -36,7 +33,16 @@ run.EnsureRanToCompletion();
 string content = run.ArtifactStore.GetFileArtifact("outFile").Last.DataAsUtf8String;
 ```
 
-Use the two-argument `LocalIOExt.Trigger.Cmd(command, workingDirectory)` overload when the command should execute inside an isolated temp folder rather than the current process directory.
+`UseRunDirectory()` creates `tf-localio-<guid>` under the system temp directory, publishes it as the
+run directory, and removes it during cleanup. Every relative LocalIO path - command working
+directory, `FileExists(...)` target, artifact reference - then resolves inside it, so concurrent runs
+cannot read, overwrite, or delete each other's files. Pass a root with
+`UseRunDirectory(Var.Const(myRoot))` when the directory must live somewhere specific.
+
+Without `UseRunDirectory()`, relative paths keep resolving against the process-wide
+`Environment.CurrentDirectory` at run time. That is the documented legacy fallback, not a
+recommendation. Use the two-argument `LocalIOExt.Trigger.Cmd(command, workingDirectory)` overload
+when a single command needs a different directory than the rest of the run.
 
 Scheduling is phase-driven. Local command triggers run in the default `Act` phase, file polling events run in `Observe`, and artifact registration runs in `Materialize`, so the common `Trigger -> WaitForEvent -> RegisterArtifact` flow stays in authored order without extra modifiers. Keep `.DoNotParallelize()` for the rarer cases where a step should still act as an explicit barrier inside its phase.
 
@@ -44,16 +50,18 @@ Scheduling is phase-driven. Local command triggers run in the default `Act` phas
 
 ```csharp
 using System;
-using System.IO;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO;
 
 Timeline timeline = Timeline.Create()
-    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(Path.Combine(Environment.CurrentDirectory, "out.txt"))))
+    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath)))
     .WithTimeOut(TimeSpan.FromSeconds(10))
     .Build();
 ```
+
+On timeout the event reports the resolved path it watched, so a mismatched working directory is easy
+to spot.
 
 ## Add Or Read File Artifacts
 
@@ -61,10 +69,13 @@ Timeline timeline = Timeline.Create()
 using TestFramework.Core.Timelines;
 using TestFramework.LocalIO;
 
-TimelineRun run = await timeline.SetupRun().AddFileArtifact("inputFile", "input.txt", "hello world").RunAsync();
+TimelineRun run = await timeline.SetupRun().AddFileArtifact("inputFile", inputPath, "hello world").RunAsync();
 
 string content = run.ArtifactStore.GetFileArtifact("inputFile").Last.DataAsUtf8String;
 ```
+
+Run-builder artifacts are set up before the timeline itself starts, so they cannot see the run
+directory - give `AddFileArtifact(...)` a fully qualified path.
 
 ## Typical Scenarios
 
@@ -78,6 +89,7 @@ Use the command result bindings when you want to assert stdout or stderr directl
 
 ```csharp
 Timeline timeline = Timeline.Create()
+    .UseRunDirectory()
     .Trigger(LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmdCommand")))
     .GetStandardOutput("commandStdOut")
     .GetStandardError("commandStdErr")
@@ -89,9 +101,12 @@ TimelineRun run = await timeline.SetupRun()
 
 run.EnsureRanToCompletion();
 
-string stdOut = run.VariableStore.GetRequiredVariable<string>("commandStdOut");
-string stdErr = run.VariableStore.GetRequiredVariable<string>("commandStdErr");
+string? stdOut = run.VariableStore.GetVariable<string>("commandStdOut");
+string? stdErr = run.VariableStore.GetVariable<string>("commandStdErr");
 ```
+
+`GetCommandResult`, `GetExitCode`, `GetCommand`, and `GetWorkingDirectory` bind the remaining parts
+of `CmdResultContext` the same way.
 
 This is the preferred consumer path when the command output itself is the evidence you want to assert.
 Use file artifacts only when the system under test already communicates through files.
@@ -120,7 +135,8 @@ Practical contract:
 
 - keep commands deterministic and avoid shell-specific quoting tricks unless the test is intentionally platform-specific
 - if a scenario is Windows-only, say so in the test and keep that limitation explicit
-- there is not yet a full cross-platform CI matrix for LocalIO, so treat the documented behavior as the support contract and validate critical shell scripts on the target host OS
+- CI runs the unit tests on both `ubuntu-latest` and `windows-latest`; still validate critical shell scripts on the target host OS, because the suite cannot cover every shell nuance
+- platform-specific tests carry `[Trait("Category", "WindowsOnly")]` or `[Trait("Category", "UnixOnly")]`, and CI filters them per runner
 
 ## Lifecycle And Cleanup
 
@@ -130,11 +146,13 @@ LocalIO file artifacts participate in the normal TestFramework artifact lifecycl
 - the framework does not assume it owns every path you point at on disk.
 - file cleanup is safest when the test owns an isolated temp directory for the scenario.
 - `FileArtifactReference.RemoveParentDirectoryIfEmpty()` is the explicit opt-in when the framework-created file should also clean up an otherwise empty parent directory.
+- `FileArtifactReference.Observed()` is the opt-out that clears deconstruction, for files the run did not create. `FileArtifactFolderFinder` produces observed references by default - discovering a file is not a licence to delete it.
+- artifact setup creates the parent directory when it is missing, and `RemoveParentDirectoryIfEmpty()` only removes a directory that setup itself created.
 
 Recommended pattern:
 
-1. create a per-test temp folder
-2. run commands inside that folder with `Cmd(command, workingDirectory)`
+1. start the timeline with `.UseRunDirectory()`
+2. keep every path in the timeline relative so it lands inside that directory
 3. register or discover only files inside that owned folder
 4. keep any broader machine path ownership out of the timeline unless the test intentionally targets it
 
