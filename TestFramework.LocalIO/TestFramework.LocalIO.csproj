@@ -1,9 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>disable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TestFramework.LocalIO</Title>
 		<Version>0.1.7</Version>
@@ -15,18 +13,10 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/DeadMoon0/TestFramework-LocalIO.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>Test;UnitTest;IntegrationTest,Framework;Fluent;Timeline;Local;IO</PackageTags>
+		<PackageTags>Test;UnitTest;IntegrationTest;Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
 		<PackageReleaseNotes>Multi-target net8.0 and net10.0</PackageReleaseNotes>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -39,7 +29,7 @@
 	<ItemGroup>
 	  <PackageReference Include="TestFramework.Core" Version="0.1.9" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<None Include="README.md">
 			<Pack>True</Pack>
