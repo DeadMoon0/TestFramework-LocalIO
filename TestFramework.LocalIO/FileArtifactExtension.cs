@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Timelines.Assertions;
@@ -66,10 +67,17 @@ public static class FileArtifactExtension
         => run.Artifact<FileArtifactData>(identifier);
 
     /// <summary>
-    /// Returns the latest file bytes as a value handle.
+    /// Returns a copy of the latest file bytes as a value handle.
     /// </summary>
+    /// <remarks>Prefer <see cref="Content(ArtifactHandle{FileArtifactData})"/>, which does not copy.</remarks>
     public static ValueHandle<byte[]> Bytes(this ArtifactHandle<FileArtifactData> handle)
-        => handle.Select(data => data.Data);
+        => handle.Select(data => data.Content.ToArray());
+
+    /// <summary>
+    /// Returns the latest file bytes as a value handle without copying them.
+    /// </summary>
+    public static ValueHandle<ReadOnlyMemory<byte>> Content(this ArtifactHandle<FileArtifactData> handle)
+        => handle.Select(data => data.Content);
 
     /// <summary>
     /// Returns the latest file content decoded as UTF-8 text.

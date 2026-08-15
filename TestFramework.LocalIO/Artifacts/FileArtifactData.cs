@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using TestFramework.Core.Artifacts;
 
 namespace TestFramework.LocalIO.Artifacts;
@@ -10,8 +11,14 @@ namespace TestFramework.LocalIO.Artifacts;
 public class FileArtifactData(byte[] data) : ArtifactData<FileArtifactData, FileArtifactDescriber, FileArtifactReference>
 {
     /// <summary>
-    /// Gets the raw file bytes.
+    /// Gets the raw file bytes without copying them.
     /// </summary>
+    public ReadOnlyMemory<byte> Content => data;
+
+    /// <summary>
+    /// Gets a fresh copy of the raw file bytes.
+    /// </summary>
+    [Obsolete("Data copies the whole file on every access. Use Content instead, or Content.ToArray() when a mutable copy is genuinely required.")]
     public byte[] Data { get => [.. data]; }
 
     /// <summary>

@@ -37,9 +37,17 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
     }
 
     /// <inheritdoc />
-    public override Task Setup(IServiceProvider serviceProvider, FileArtifactData data, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
+    public override async Task Setup(IServiceProvider serviceProvider, FileArtifactData data, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {
-        return File.WriteAllBytesAsync(reference.GetPath(variableStore), data.Data);
+        string path = reference.GetPath(variableStore);
+
+        // Stream the content instead of File.WriteAllBytesAsync: the ReadOnlyMemory overload of
+        // that method only exists from .NET 9, and this package also targets net8.0.
+        FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
+        await using (stream.ConfigureAwait(false))
+        {
+            await stream.WriteAsync(data.Content).ConfigureAwait(false);
+        }
     }
 
     /// <inheritdoc />

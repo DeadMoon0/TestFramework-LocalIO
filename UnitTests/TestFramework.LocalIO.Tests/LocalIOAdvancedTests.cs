@@ -371,7 +371,7 @@ public class LocalIOAdvancedTests
         Assert.NotNull(builder.ArtifactIdentifier);
         Assert.Equal("file", builder.ArtifactIdentifier!.Identifier);
         Assert.NotNull(builder.Reference);
-        Assert.Equal(new byte[] { 1, 2, 3 }, builder.Data!.Data);
+        Assert.Equal(new byte[] { 1, 2, 3 }, builder.Data!.Content.ToArray());
     }
 
     [Fact]
@@ -385,7 +385,7 @@ public class LocalIOAdvancedTests
 
         ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> resolved = run.ArtifactStore.GetFileArtifact("file");
 
-        Assert.Equal(new byte[] { 1, 2, 3 }, resolved.Last.Data);
+        Assert.Equal(new byte[] { 1, 2, 3 }, resolved.Last.Content.ToArray());
     }
 
     private static string CreateTempDirectory()
