@@ -64,7 +64,14 @@ public class FileArtifactReferenceTests
             TimelineRun run = await timeline.SetupRun().RunAsync();
 
             run.EnsureRanToCompletion();
-            Assert.Equal($"File: \"{filePath}\"", reference.ToString());
+
+            // The run pins its own copy of the reference, not the instance registered on the
+            // timeline. That is what keeps two runs of one timeline from sharing pinned state, so
+            // the resolved path is read from the run's artifact - the declaration stays unresolved.
+            ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> artifact =
+                run.ArtifactStore.GetFileArtifact("file");
+            Assert.Equal($"File: \"{filePath}\"", artifact.Reference.ToString());
+            Assert.Equal("File: (unresolved)", reference.ToString());
         }
         finally
         {
