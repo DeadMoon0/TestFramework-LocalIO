@@ -42,7 +42,7 @@
 	</Target>
 
 	<ItemGroup>
-	  <PackageReference Include="TestFramework.Core" Version="0.1.9" />
+	  <PackageReference Include="TestFramework.Core" Version="0.1.10" />
 	</ItemGroup>
 
 	<ItemGroup>
