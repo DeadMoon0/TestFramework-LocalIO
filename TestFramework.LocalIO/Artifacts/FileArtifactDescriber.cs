@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using TestFramework.Core.Artifacts;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Variables;
@@ -13,6 +14,44 @@ namespace TestFramework.LocalIO.Artifacts;
 /// </summary>
 public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
 {
+    /// <summary>
+    /// The canonical key mirrored from <c>TestFramework.Core.Debugger.DebugValueSchemaKeys.File</c>.
+    /// </summary>
+    /// <remarks>
+    /// A literal rather than a reference because this package builds against the published Core.
+    /// <c>FileArtifactSchemaTests</c> pins it to the canonical value so the two cannot drift.
+    /// </remarks>
+    internal const string SchemaKey = "tf.artifact.file";
+
+    /// <summary>
+    /// Identifies this artifact's debug shape, so a consumer renders it as a file rather than
+    /// falling back to a generic view keyed on the CLR type name.
+    /// </summary>
+    public override string DebugValueSchemaKey => SchemaKey;
+
+    /// <inheritdoc />
+    public override JToken? CreateDebugValueCustomPayload(ArtifactInstanceGeneric instance)
+    {
+        ArgumentNullException.ThrowIfNull(instance);
+
+        if (instance.Reference is not FileArtifactReference reference)
+            return null;
+
+        // Read through the pinned path only. Asking a reference for its path before setup pinned it
+        // throws by design, and a debug payload must never be the thing that fails a run.
+        string? path = reference.TryGetPinnedPath();
+        if (path is null)
+            return null;
+
+        return new JObject
+        {
+            ["path"] = path,
+            ["fileName"] = Path.GetFileName(path),
+            ["extension"] = Path.GetExtension(path),
+            ["length"] = File.Exists(path) ? new FileInfo(path).Length : null
+        };
+    }
+
     /// <inheritdoc />
     public override Task Deconstruct(IServiceProvider serviceProvider, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
     {

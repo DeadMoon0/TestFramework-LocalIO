@@ -95,6 +95,16 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         ? pinnedPath
         : throw new FrameworkStateException("The file artifact path is not resolved yet. Read FilePath after the run has registered, discovered or set up the artifact.");
 
+    /// <summary>
+    /// Returns the pinned path, or null when the reference has not been resolved yet.
+    /// </summary>
+    /// <remarks>
+    /// The non-throwing counterpart to <see cref="FilePath"/>, for callers that must tolerate an
+    /// unresolved reference — building a debug payload, above all. A debug view must never be the
+    /// reason a run fails.
+    /// </remarks>
+    internal string? TryGetPinnedPath() => hasPinnedPath ? pinnedPath : null;
+
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
