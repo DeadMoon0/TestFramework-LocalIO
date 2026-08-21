@@ -4,7 +4,7 @@
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TestFramework.LocalIO</Title>
-		<Version>0.2.0</Version>
+		<Version>0.2.1</Version>
 		<Authors>DeadMoon0</Authors>
 		<Product>TestFramework</Product>
 		<Description>Manage your Local IO with a Framework Timeline.</Description>
@@ -53,7 +53,7 @@ BREAKING:
 	</Target>
 
 	<ItemGroup>
-	  <PackageReference Include="TestFramework.Core" Version="0.2.0" />
+	  <PackageReference Include="TestFramework.Core" Version="0.2.1" />
 	</ItemGroup>
 
 	<ItemGroup>

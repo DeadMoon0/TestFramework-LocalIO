@@ -146,7 +146,7 @@ LocalIO file artifacts participate in the normal TestFramework artifact lifecycl
 - the framework does not assume it owns every path you point at on disk.
 - file cleanup is safest when the test owns an isolated temp directory for the scenario.
 - `FileArtifactReference.RemoveParentDirectoryIfEmpty()` is the explicit opt-in when the framework-created file should also clean up an otherwise empty parent directory.
-- `FileArtifactReference.Observed()` is the opt-out that clears deconstruction, for files the run did not create. `FileArtifactFolderFinder` produces observed references by default - discovering a file is not a licence to delete it.
+- Teardown deletes every file artifact, including the ones `FileArtifactFolderFinder` discovered. Chain `MarkReadonly()` onto the `FindArtifact` / `FindArtifacts` / `RegisterArtifact` call for a file the run did not create - it is the only opt-out, and nothing downstream can overrule it.
 - artifact setup creates the parent directory when it is missing, and `RemoveParentDirectoryIfEmpty()` only removes a directory that setup itself created.
 
 Recommended pattern:

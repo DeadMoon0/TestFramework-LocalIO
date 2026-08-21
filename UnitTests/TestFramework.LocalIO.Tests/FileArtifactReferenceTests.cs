@@ -54,7 +54,7 @@ public class FileArtifactReferenceTests
         {
             File.WriteAllText(filePath, "described");
 
-            FileArtifactReference reference = LocalIOExt.Artifacts.FileRef(Var.Const(filePath)).Observed();
+            FileArtifactReference reference = LocalIOExt.Artifacts.FileRef(Var.Const(filePath));
             Assert.Equal("File: (unresolved)", reference.ToString());
 
             Timeline timeline = Timeline.Create()

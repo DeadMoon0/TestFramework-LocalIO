@@ -27,7 +27,7 @@
     Prefer the command result bindings (GetStandardOutput, GetExitCode, ...) when the command output itself is the evidence; use file artifacts when the system under test genuinely communicates through files.
     Prefer artifact registration when the file content is part of what the test needs to inspect later.
     Keep command execution, file waiting, and artifact inspection as separate visible concerns in the timeline whenever possible.
-    Mark artifacts the run did not create with Observed() so cleanup does not delete them.
+    Mark artifacts the run did not create with MarkReadonly() on the declaring call so cleanup does not delete them.
     Prefer compact shapes such as `Trigger(LocalIOExt.Trigger.Cmd(...))` and `WaitForEvent(LocalIOExt.Events.FileExists(...))` when the command or path still reads clearly.
 </best_practices>
 
@@ -36,7 +36,8 @@
     - timeline.UseRunDirectory() and UseRunDirectory(root)
     - LocalIOExt.Trigger.Cmd(command) and Cmd(command, workingDirectory)
     - LocalIOExt.Events.FileExists(path) and FileExists(path, pollDelay)
-    - LocalIOExt.Artifacts.FileRef(path), plus .Observed() and .RemoveParentDirectoryIfEmpty()
+    - LocalIOExt.Artifacts.FileRef(path), plus .RemoveParentDirectoryIfEmpty()
+    - MarkReadonly() on the FindArtifact/FindArtifacts/RegisterArtifact call is the protection to reach for
     - result bindings on a Cmd step: GetCommandResult, GetExitCode, GetStandardOutput, GetStandardError, GetCommand, GetWorkingDirectory
     - run.AddFileArtifact(...)
     - run.ArtifactStore.GetFileArtifact("name") and run.ArtifactStore.GetFileArtifacts("baseName")
@@ -56,7 +57,7 @@
     - FileExists(...) is a polling event with a default poll delay of 500 ms; on timeout it reports the resolved path it was watching.
     - File artifacts have describers, references, and data objects just like other Core artifacts.
     - Artifact setup creates the parent directory when it is missing, and cleanup only removes a parent directory that setup created.
-    - Folder discovery returns one or many file artifacts from the directory at runtime, as observed references that cleanup never deletes.
+    - Folder discovery returns one or many file artifacts from the directory at runtime. They are deleted at teardown like any other artifact, so add MarkReadonly() when the run only reads the folder.
 </runtime_behavior>
 
 <documentation_notes>
@@ -110,7 +111,7 @@
     - burying complex shell behavior in unreadable command strings
     - waiting for files without an explicit timeout nearby
     - treating a path string as the same thing as a tracked artifact when the content matters later
-    - registering a pre-existing file without Observed(), which licenses cleanup to delete it
+    - declaring a pre-existing file without MarkReadonly(), which licenses cleanup to delete it
     - reading FileArtifactData.Data in a loop; it copies the whole file on every access, use Content
 </anti_patterns>
 

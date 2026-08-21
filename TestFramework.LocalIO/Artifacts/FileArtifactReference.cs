@@ -42,17 +42,6 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         return this;
     }
 
-    /// <summary>
-    /// Marks the file as merely observed, so cleanup never deletes it.
-    /// </summary>
-    /// <remarks>Use this for files the run did not create - registering or discovering a file is not a licence to delete it.</remarks>
-    /// <returns>The same artifact reference for fluent chaining.</returns>
-    public FileArtifactReference Observed()
-    {
-        CanDeconstruct = false;
-        return this;
-    }
-
     /// <inheritdoc />
     /// <remarks>
     /// The first pin wins. Core calls this directly instead of going through <c>PinReference</c>,

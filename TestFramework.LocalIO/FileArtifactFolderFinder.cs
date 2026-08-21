@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -14,8 +14,9 @@ namespace TestFramework.LocalIO;
 /// Finds file artifacts from a folder on disk.
 /// </summary>
 /// <remarks>
-/// The references it produces are observed, so cleanup never deletes a file that merely happened
-/// to be discovered.
+/// The references it produces are ordinary, deletable file references, so teardown removes what this
+/// finder discovered - the same default every other artifact gets. Chain <c>MarkReadonly()</c> onto the
+/// <c>FindArtifact</c> / <c>FindArtifacts</c> call for a folder the run only reads.
 /// </remarks>
 /// <param name="folderPath">The folder to search.</param>
 public class FileArtifactFolderFinder(VariableReference<string> folderPath) : ArtifactFinder<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
@@ -37,7 +38,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
             return Task.FromResult<ArtifactFinderResult?>(null);
         }
 
-        return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(new FileArtifactReference(filePath).Observed()));
+        return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(new FileArtifactReference(filePath)));
     }
 
     /// <summary>
@@ -50,7 +51,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
         if (folder is null) return Task.FromResult(new ArtifactFinderResultMulti([]));
 
         ArtifactFinderResult[] results = Directory.EnumerateFiles(folder)
-            .Select(filePath => new ArtifactFinderResult(new FileArtifactReference(filePath).Observed()))
+            .Select(filePath => new ArtifactFinderResult(new FileArtifactReference(filePath)))
             .ToArray();
 
         if (results.Length == 0)

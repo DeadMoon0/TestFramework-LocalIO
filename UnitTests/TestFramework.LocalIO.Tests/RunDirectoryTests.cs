@@ -77,7 +77,7 @@ public class RunDirectoryTests
             File.WriteAllText(Path.Combine(tempDir, "legacy.txt"), "legacy");
 
             Timeline timeline = Timeline.Create()
-                .RegisterArtifact("legacy", LocalIOExt.Artifacts.FileRef(Var.Const("legacy.txt")).Observed())
+                .RegisterArtifact("legacy", LocalIOExt.Artifacts.FileRef(Var.Const("legacy.txt")))
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -93,7 +93,7 @@ public class RunDirectoryTests
     }
 
     [Fact]
-    public async Task Observed_KeepsCleanupFromDeletingAFileTheRunDidNotCreate()
+    public async Task MarkReadonly_KeepsCleanupFromDeletingAFileTheRunDidNotCreate()
     {
         string tempDir = CreateTempDirectory();
         string preExisting = Path.Combine(tempDir, "pre-existing.txt");
@@ -103,13 +103,14 @@ public class RunDirectoryTests
             File.WriteAllText(preExisting, "keep me");
 
             Timeline timeline = Timeline.Create()
-                .RegisterArtifact("kept", LocalIOExt.Artifacts.FileRef(Var.Const(preExisting)).Observed())
+                .RegisterArtifact("kept", LocalIOExt.Artifacts.FileRef(Var.Const(preExisting)))
+                .MarkReadonly()
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();
 
             run.EnsureRanToCompletion();
-            Assert.True(File.Exists(preExisting), "An observed artifact was deleted during cleanup.");
+            Assert.True(File.Exists(preExisting), "A readonly artifact was deleted during cleanup.");
         }
         finally
         {
@@ -118,8 +119,10 @@ public class RunDirectoryTests
     }
 
     [Fact]
-    public async Task FileArtifactFolderFinder_ProducesObservedReferences_AndLeavesTheFilesOnDisk()
+    public async Task FileArtifactFolderFinder_DeletesWhatItDiscovered_BecauseThatIsTheDefault()
     {
+        // The finder no longer decides ownership on the author's behalf. Discovery gets the same
+        // default as everything else - deleted at teardown - and MarkReadonly() is the way out.
         string tempDir = CreateTempDirectory();
         string discovered = Path.Combine(tempDir, "discovered.txt");
 
@@ -136,7 +139,63 @@ public class RunDirectoryTests
                 .RunAsync();
 
             run.EnsureRanToCompletion();
-            Assert.True(File.Exists(discovered), "Discovering a file is not a licence to delete it.");
+            Assert.False(File.Exists(discovered), "Teardown deletes a discovered file unless the timeline marks it readonly.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task FileArtifactFolderFinder_WithMarkReadonly_LeavesTheFilesOnDisk()
+    {
+        string tempDir = CreateTempDirectory();
+        string discovered = Path.Combine(tempDir, "discovered.txt");
+
+        try
+        {
+            File.WriteAllText(discovered, "discovered");
+
+            Timeline timeline = Timeline.Create()
+                .FindArtifact("file", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .MarkReadonly()
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
+
+            run.EnsureRanToCompletion();
+            Assert.True(File.Exists(discovered), "MarkReadonly() is the author's decision and nothing may overrule it.");
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task FileArtifactFolderFinder_WithMarkReadonly_ProtectsEveryDiscoveredFile()
+    {
+        string tempDir = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "a.txt"), "a");
+            File.WriteAllText(Path.Combine(tempDir, "b.txt"), "b");
+
+            Timeline timeline = Timeline.Create()
+                .FindArtifacts("files", new FileArtifactFolderFinder(Var.Ref<string>("folder")))
+                .MarkReadonly()
+                .Build();
+
+            TimelineRun run = await timeline.SetupRun()
+                .AddVariable("folder", tempDir)
+                .RunAsync();
+
+            run.EnsureRanToCompletion();
+            Assert.Equal(2, Directory.EnumerateFiles(tempDir).Count());
         }
         finally
         {
