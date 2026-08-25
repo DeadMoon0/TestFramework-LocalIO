@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,13 +37,13 @@ public class RunDirectoryStep(VariableReference<string>? root = null) : Step<Emp
     public override Step<EmptyStepResultContext> Clone() => new RunDirectoryStep(root).WithClonedOptions(this);
 
     /// <inheritdoc />
-    public override Task<EmptyStepResultContext?> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override Task<EmptyStepResultContext?> Execute(RunContext context)
     {
-        string rootPath = root?.GetValue(variableStore) ?? Path.GetTempPath();
+        string rootPath = root?.GetValue(context.Variables) ?? Path.GetTempPath();
         string runDirectory = Path.Combine(rootPath, $"tf-localio-{Guid.NewGuid():N}");
         Directory.CreateDirectory(runDirectory);
-        variableStore.SetVariable(LocalPath.RunDirectoryVariable, runDirectory);
-        logger.LogInformation($"LocalIO run directory: {runDirectory}");
+        context.Variables.SetVariable(LocalPath.RunDirectoryVariable, runDirectory);
+        context.Logger.LogInformation($"LocalIO run directory: {runDirectory}");
         return Task.FromResult<EmptyStepResultContext?>(null);
     }
 
@@ -80,12 +80,12 @@ public class RunDirectoryCleanupStep : Step<EmptyStepResultContext>
     public override Step<EmptyStepResultContext> Clone() => new RunDirectoryCleanupStep().WithClonedOptions(this);
 
     /// <inheritdoc />
-    public override Task<EmptyStepResultContext?> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override Task<EmptyStepResultContext?> Execute(RunContext context)
     {
-        string? runDirectory = LocalPath.TryGetRunDirectory(variableStore);
+        string? runDirectory = LocalPath.TryGetRunDirectory(context.Variables);
         if (runDirectory is null)
         {
-            logger.LogWarning("No LocalIO run directory was published, so there is nothing to clean up.");
+            context.Logger.LogWarning("No LocalIO run directory was published, so there is nothing to clean up.");
             return Task.FromResult<EmptyStepResultContext?>(null);
         }
 
@@ -97,15 +97,15 @@ public class RunDirectoryCleanupStep : Step<EmptyStepResultContext>
         try
         {
             Directory.Delete(runDirectory, true);
-            logger.LogInformation($"Removed the LocalIO run directory: {runDirectory}");
+            context.Logger.LogInformation($"Removed the LocalIO run directory: {runDirectory}");
         }
         catch (IOException exception)
         {
-            logger.LogWarning($"Could not remove the LocalIO run directory \"{runDirectory}\": {exception.Message}");
+            context.Logger.LogWarning($"Could not remove the LocalIO run directory \"{runDirectory}\": {exception.Message}");
         }
         catch (UnauthorizedAccessException exception)
         {
-            logger.LogWarning($"Could not remove the LocalIO run directory \"{runDirectory}\": {exception.Message}");
+            context.Logger.LogWarning($"Could not remove the LocalIO run directory \"{runDirectory}\": {exception.Message}");
         }
 
         return Task.FromResult<EmptyStepResultContext?>(null);

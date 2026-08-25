@@ -1,4 +1,5 @@
-﻿using System;
+﻿using TestFramework.Core.Steps;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -25,16 +26,16 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
     /// Returns the first file found in the target folder, or <see langword="null"/> when the folder
     /// is empty or does not exist.
     /// </summary>
-    public override Task<ArtifactFinderResult?> FindAsync(IServiceProvider serviceProvider, VariableStore variableStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override Task<ArtifactFinderResult?> FindAsync(RunContext context)
     {
-        string? folder = ResolveFolder(variableStore, logger);
+        string? folder = ResolveFolder(context.Variables, context.Logger);
         if (folder is null) return Task.FromResult<ArtifactFinderResult?>(null);
 
         // EnumerateFiles stops at the first hit instead of materializing the whole listing.
         string? filePath = Directory.EnumerateFiles(folder).FirstOrDefault();
         if (filePath is null)
         {
-            logger.LogWarning($"No files found in folder: {folder}");
+            context.Logger.LogWarning($"No files found in folder: {folder}");
             return Task.FromResult<ArtifactFinderResult?>(null);
         }
 
@@ -45,9 +46,9 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
     /// Returns all files found in the target folder, or nothing when the folder does not exist.
     /// </summary>
     /// <remarks>The result order matches <see cref="Directory.EnumerateFiles(string)"/> and should not be treated as a stable semantic ordering.</remarks>
-    public override Task<ArtifactFinderResultMulti> FindMultiAsync(IServiceProvider serviceProvider, VariableStore variableStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override Task<ArtifactFinderResultMulti> FindMultiAsync(RunContext context)
     {
-        string? folder = ResolveFolder(variableStore, logger);
+        string? folder = ResolveFolder(context.Variables, context.Logger);
         if (folder is null) return Task.FromResult(new ArtifactFinderResultMulti([]));
 
         ArtifactFinderResult[] results = Directory.EnumerateFiles(folder)
@@ -55,7 +56,7 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
             .ToArray();
 
         if (results.Length == 0)
-            logger.LogWarning($"No files found in folder: {folder}");
+            context.Logger.LogWarning($"No files found in folder: {folder}");
 
         return Task.FromResult(new ArtifactFinderResultMulti(results));
     }

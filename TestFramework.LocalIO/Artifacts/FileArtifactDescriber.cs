@@ -1,4 +1,5 @@
-﻿using System;
+﻿using TestFramework.Core.Steps;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -53,9 +54,9 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
     }
 
     /// <inheritdoc />
-    public override Task Deconstruct(IServiceProvider serviceProvider, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
+    public override Task Deconstruct(RunContext context, FileArtifactReference reference)
     {
-        string path = reference.GetPath(variableStore);
+        string path = reference.GetPath(context.Variables);
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -78,9 +79,9 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
     }
 
     /// <inheritdoc />
-    public override async Task Setup(IServiceProvider serviceProvider, FileArtifactData data, FileArtifactReference reference, VariableStore variableStore, ScopedLogger logger)
+    public override async Task Setup(RunContext context, FileArtifactData data, FileArtifactReference reference)
     {
-        string path = reference.GetPath(variableStore);
+        string path = reference.GetPath(context.Variables);
 
         // Setup used to fail with a raw DirectoryNotFoundException while cleanup was already able
         // to remove a directory - create the parent so the two sides are symmetric.
@@ -89,7 +90,7 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
         {
             Directory.CreateDirectory(parentDirectory);
             reference.MarkSetupCreatedParentDirectory();
-            logger.LogInformation($"Created the parent directory \"{parentDirectory}\" for the file artifact.");
+            context.Logger.LogInformation($"Created the parent directory \"{parentDirectory}\" for the file artifact.");
         }
 
         // Stream the content instead of File.WriteAllBytesAsync: the ReadOnlyMemory overload of

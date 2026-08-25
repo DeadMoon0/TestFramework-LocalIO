@@ -43,15 +43,15 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     }
 
     /// <inheritdoc />
-    public override async Task<CmdResultContext?> Execute(IServiceProvider serviceProvider, VariableStore variableStore, ArtifactStore artifactStore, ScopedLogger logger, CancellationToken cancellationToken)
+    public override async Task<CmdResultContext?> Execute(RunContext context)
     {
-        string? cmdText = command.GetValue(variableStore);
+        string? cmdText = command.GetValue(context.Variables);
         if (cmdText is null)
             throw new FrameworkStateException("CmdTrigger command is null.");
-        string? configuredWorkingDir = workingDirectory?.GetValue(variableStore);
+        string? configuredWorkingDir = workingDirectory?.GetValue(context.Variables);
         string workingDir = configuredWorkingDir is null
-            ? LocalPath.TryGetRunDirectory(variableStore) ?? Environment.CurrentDirectory
-            : LocalPath.Resolve(configuredWorkingDir, variableStore);
+            ? LocalPath.TryGetRunDirectory(context.Variables) ?? Environment.CurrentDirectory
+            : LocalPath.Resolve(configuredWorkingDir, context.Variables);
         ProcessStartInfo info;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -91,27 +91,27 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
 
         // Drain both pipes concurrently BEFORE waiting for exit: a child that writes more than the
         // pipe buffer (~4 KB on Windows, ~64 KB on Linux) blocks forever otherwise.
-        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(context.Deadline.Token);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(context.Deadline.Token);
 
         string outStd;
         string errorStd;
         try
         {
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(context.Deadline.Token);
             outStd = await standardOutputTask;
             errorStd = await standardErrorTask;
         }
         catch (OperationCanceledException)
         {
-            KillProcessTree(process, logger);
+            KillProcessTree(process, context.Logger);
             Observe(standardOutputTask);
             Observe(standardErrorTask);
             throw;
         }
 
-        if (!String.IsNullOrWhiteSpace(outStd)) logger.LogInformation(outStd);
-        if (!String.IsNullOrWhiteSpace(errorStd)) logger.LogWarning("[External stderr]\n" + errorStd);
+        if (!String.IsNullOrWhiteSpace(outStd)) context.Logger.LogInformation(outStd);
+        if (!String.IsNullOrWhiteSpace(errorStd)) context.Logger.LogWarning("[External stderr]\n" + errorStd);
 
         return new CmdResultContext(process.ExitCode, outStd, errorStd, cmdText, workingDir);
     }

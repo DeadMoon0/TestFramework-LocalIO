@@ -19,12 +19,14 @@ public class ErrorQualityTests
 
         try
         {
-            // Three seconds, not the couple of hundred milliseconds this used to use. The event has
-            // to give up before the step timeout to report the path at all (see the framework
-            // limitation in AUDIT-STATUS.md), and its margin is measured from when the event starts
-            // polling while the step timeout is measured from when the step starts. On a loaded
-            // two-core runner the gap between those two moments was larger than the whole margin,
-            // so the generic message won and this test failed for a reason it does not test.
+            // The event no longer gives up early: Core cancels at the deadline and then waits a grace
+            // window for whatever the step says, so the margin this event used to enforce on itself -
+            // tuned twice, lost by CI twice - is gone.
+            //
+            // The budget stays generous anyway, and not out of habit. A few hundred milliseconds is not
+            // enough on a loaded two-core runner for the step's continuation to be scheduled after
+            // cancellation, so a short timeout here fails for a reason this test does not test. That is
+            // exactly what happened when this was retried at 400 ms.
             Timeline timeline = Timeline.Create()
                 .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(missingPath), Var.Const(TimeSpan.FromMilliseconds(20))))
                 .WithTimeOut(TimeSpan.FromSeconds(5))

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using TestFramework.Core.Steps;
+using System;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
@@ -16,7 +17,6 @@ namespace TestFramework.LocalIO.Artifacts;
 public class FileArtifactReference : ArtifactReference<FileArtifactReference, FileArtifactDescriber, FileArtifactData>
 {
     private string pinnedPath = "";
-    private bool hasPinnedPath;
     private bool removeParentDirectoryIfEmpty;
     private bool setupCreatedParentDirectory;
 
@@ -44,22 +44,20 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
 
     /// <inheritdoc />
     /// <remarks>
-    /// The first pin wins. Core calls this directly instead of going through <c>PinReference</c>,
-    /// so <c>IsPinned</c> cannot be trusted here: without its own flag the reference would keep
-    /// re-resolving the variable, and rebinding it mid-run would retarget the cleanup delete onto
-    /// a different file than Setup wrote.
+    /// Called once per run: the store is the only route to pinning and it refuses a second one, so the
+    /// duplicate flag this used to keep - because Core had two pin paths and <c>IsPinned</c> could not be
+    /// trusted - is gone. What still matters is that the path is resolved once: rebinding it mid-run would
+    /// retarget the cleanup delete onto a different file than setup wrote.
     /// </remarks>
-    public override void OnPinReference(VariableStore variableStore, ScopedLogger logger)
+    public override void OnPinReference(RunContext context)
     {
-        if (hasPinnedPath) return;
-        pinnedPath = ResolvePath(variableStore);
-        hasPinnedPath = true;
+        pinnedPath = ResolvePath(context.Variables);
     }
 
     /// <inheritdoc />
-    public override async Task<ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> ResolveToDataAsync(IServiceProvider serviceProvider, ArtifactVersionIdentifier versionIdentifier, VariableStore variableStore, ScopedLogger logger)
+    public override async Task<ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> ResolveToDataAsync(RunContext context, ArtifactVersionIdentifier versionIdentifier)
     {
-        string _path = ResolvePath(variableStore);
+        string _path = ResolvePath(context.Variables);
         if (!File.Exists(_path)) return new ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
         {
             Found = false,
@@ -80,7 +78,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     // Core snapshots references for the debugger by serializing their public properties, so a
     // property that throws before the pin has to stay out of that snapshot.
     [IgnoreDataMember]
-    public string FilePath => hasPinnedPath
+    public string FilePath => IsPinned
         ? pinnedPath
         : throw new FrameworkStateException("The file artifact path is not resolved yet. Read FilePath after the run has registered, discovered or set up the artifact.");
 
@@ -92,7 +90,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     /// unresolved reference — building a debug payload, above all. A debug view must never be the
     /// reason a run fails.
     /// </remarks>
-    internal string? TryGetPinnedPath() => hasPinnedPath ? pinnedPath : null;
+    internal string? TryGetPinnedPath() => IsPinned ? pinnedPath : null;
 
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
@@ -103,7 +101,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
 
     internal string GetPath(VariableStore variableStore)
     {
-        if (hasPinnedPath) return pinnedPath;
+        if (IsPinned) return pinnedPath;
         return ResolvePath(variableStore);
     }
 
@@ -130,5 +128,5 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     internal bool SetupCreatedParentDirectory => setupCreatedParentDirectory;
 
     /// <inheritdoc />
-    public override string ToString() => hasPinnedPath ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
+    public override string ToString() => IsPinned ? $"File: \"{pinnedPath}\"" : "File: (unresolved)";
 }

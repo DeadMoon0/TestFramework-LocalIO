@@ -1,4 +1,5 @@
-﻿using System;
+﻿using TestFramework.Core.Steps;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,14 +49,14 @@ public class ArtifactExceptionTests
 
     private sealed class MismatchArtifactReference : ArtifactReference<MismatchArtifactReference, MismatchArtifactDescriber, MismatchArtifactData>
     {
-        public override Task<ArtifactResolveResult<MismatchArtifactDescriber, MismatchArtifactData, MismatchArtifactReference>> ResolveToDataAsync(IServiceProvider serviceProvider, ArtifactVersionIdentifier versionIdentifier, TestFramework.Core.Variables.VariableStore variableStore, TestFramework.Core.Logging.ScopedLogger logger)
+        public override Task<ArtifactResolveResult<MismatchArtifactDescriber, MismatchArtifactData, MismatchArtifactReference>> ResolveToDataAsync(RunContext context, ArtifactVersionIdentifier versionIdentifier)
             => throw new NotSupportedException();
 
         public override void DeclareIO(StepIOContract contract)
         {
         }
 
-        public override void OnPinReference(TestFramework.Core.Variables.VariableStore variableStore, TestFramework.Core.Logging.ScopedLogger logger)
+        public override void OnPinReference(RunContext context)
         {
         }
 
@@ -69,10 +70,10 @@ public class ArtifactExceptionTests
 
     private sealed class MismatchArtifactDescriber : ArtifactDescriber<MismatchArtifactDescriber, MismatchArtifactData, MismatchArtifactReference>
     {
-        public override Task Setup(IServiceProvider serviceProvider, MismatchArtifactData data, MismatchArtifactReference reference, TestFramework.Core.Variables.VariableStore variableStore, TestFramework.Core.Logging.ScopedLogger logger)
+        public override Task Setup(RunContext context, MismatchArtifactData data, MismatchArtifactReference reference)
             => Task.CompletedTask;
 
-        public override Task Deconstruct(IServiceProvider serviceProvider, MismatchArtifactReference reference, TestFramework.Core.Variables.VariableStore variableStore, TestFramework.Core.Logging.ScopedLogger logger)
+        public override Task Deconstruct(RunContext context, MismatchArtifactReference reference)
             => Task.CompletedTask;
 
         public override string ToString() => nameof(MismatchArtifactDescriber);
