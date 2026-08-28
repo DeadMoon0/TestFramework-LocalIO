@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Exceptions;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO.Artifacts;
@@ -23,23 +24,42 @@ namespace TestFramework.LocalIO;
 public class FileArtifactFolderFinder(VariableReference<string> folderPath) : ArtifactFinder<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
 {
     /// <summary>
-    /// Returns the first file found in the target folder, or <see langword="null"/> when the folder
-    /// is empty or does not exist.
+    /// Returns the one file in the target folder, or <see langword="null"/> when the folder is empty
+    /// or does not exist.
     /// </summary>
+    /// <exception cref="FrameworkConfigurationException">The folder holds more than one file.</exception>
+    /// <remarks>
+    /// Two candidates for one artifact is a stated error, never a coin toss: this used to take the
+    /// first file in filesystem enumeration order, so a stray <c>.tmp</c> or <c>desktop.ini</c> beside
+    /// the expected file silently bound the wrong artifact and the failure surfaced in whatever
+    /// asserted on the content. A folder with several wanted files is what <see cref="FindMultiAsync"/>
+    /// is for.
+    /// </remarks>
     public override Task<ArtifactFinderResult?> FindAsync(RunContext context)
     {
         string? folder = ResolveFolder(context.Variables, context.Logger);
         if (folder is null) return Task.FromResult<ArtifactFinderResult?>(null);
 
-        // EnumerateFiles stops at the first hit instead of materializing the whole listing.
-        string? filePath = Directory.EnumerateFiles(folder).FirstOrDefault();
-        if (filePath is null)
+        // Six is enough to refuse with names without materializing a huge listing.
+        string[] files = [.. Directory.EnumerateFiles(folder).Take(6)];
+        if (files.Length == 0)
         {
             context.Logger.LogWarning($"No files found in folder: {folder}");
             return Task.FromResult<ArtifactFinderResult?>(null);
         }
 
-        return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(new FileArtifactReference(filePath)));
+        if (files.Length > 1)
+        {
+            string names = string.Join(", ", files.Take(5).Select(Path.GetFileName)) + (files.Length > 5 ? ", ..." : string.Empty);
+            throw new FrameworkConfigurationException(
+                $"The folder \"{folder}\" holds more than one file ({names}), so which one is the artifact is ambiguous.",
+                [
+                    "Point the finder at a folder that holds the one file.",
+                    "Or discover them all with FindArtifacts, which takes every file.",
+                ]);
+        }
+
+        return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(new FileArtifactReference(files[0])));
     }
 
     /// <summary>

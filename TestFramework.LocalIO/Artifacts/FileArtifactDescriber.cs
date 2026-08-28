@@ -44,12 +44,26 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
         if (path is null)
             return null;
 
+        // One FileInfo snapshot instead of Exists-then-Length on the live filesystem: the system
+        // under test deleting the file between the two calls is this package's normal case, and the
+        // rule above covers the filesystem too - so a read failure yields no length, never a throw.
+        long? length;
+        try
+        {
+            FileInfo info = new(path);
+            length = info.Exists ? info.Length : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            length = null;
+        }
+
         return new JObject
         {
             ["path"] = path,
             ["fileName"] = Path.GetFileName(path),
             ["extension"] = Path.GetExtension(path),
-            ["length"] = File.Exists(path) ? new FileInfo(path).Length : null
+            ["length"] = length
         };
     }
 
@@ -98,7 +112,9 @@ public class FileArtifactDescriber : ArtifactDescriber<FileArtifactDescriber, Fi
         FileStream stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
         await using (stream.ConfigureAwait(false))
         {
-            await stream.WriteAsync(data.Content).ConfigureAwait(false);
+            // On the run's deadline: a stalled network share or a huge payload must stop when the
+            // step does, or the abandoned write holds the file handle and the cleanup delete fails.
+            await stream.WriteAsync(data.Content, context.Deadline.Token).ConfigureAwait(false);
         }
     }
 

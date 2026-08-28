@@ -62,8 +62,25 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
         // worked out from Remaining: the arithmetic version reads the edge wrong under load.
         catch (OperationCanceledException exception) when (context.Deadline.HasExpired)
         {
+            // Re-resolved so the message names the path that was actually polled last: the path rides
+            // a variable, and a variable rewritten mid-wait would otherwise make the timeout name a
+            // path this event stopped watching. Best effort - the initial resolution is the fallback.
+            string lastPolled;
+            try
+            {
+                lastPolled = ResolvePath(context.Variables);
+            }
+            catch
+            {
+                lastPolled = resolvedPath;
+            }
+
+            string watched = string.Equals(lastPolled, resolvedPath, StringComparison.Ordinal)
+                ? $"\"{resolvedPath}\""
+                : $"\"{lastPolled}\" (initially \"{resolvedPath}\" - the path variable changed while waiting)";
+
             throw new TimeoutException(
-                $"The file \"{resolvedPath}\" never appeared. Check that the producing step really writes to this path - "
+                $"The file {watched} never appeared. Check that the producing step really writes to this path - "
                 + "a relative path resolves against the LocalIO run directory when the timeline calls UseRunDirectory(), "
                 + "and against the process working directory otherwise, so a mismatched working directory is the usual cause.",
                 exception);
@@ -88,7 +105,9 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     {
         if (path.HasIdentifier)
             contract.Inputs.Add(new StepIOEntry(path.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
+        // Required, because that is the truth: a named-but-missing variable throws at run time, so
+        // declaring it optional traded a plan-time refusal with the fix named for a mid-poll crash.
         if (pollDelay is not null && pollDelay.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(pollDelay.Identifier!.Identifier, StepIOKind.Variable, false, typeof(System.TimeSpan)));
+            contract.Inputs.Add(new StepIOEntry(pollDelay.Identifier!.Identifier, StepIOKind.Variable, true, typeof(System.TimeSpan)));
     }
 }

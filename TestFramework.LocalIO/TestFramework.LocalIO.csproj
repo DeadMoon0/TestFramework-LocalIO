@@ -16,9 +16,7 @@
 		<PackageTags>Test;UnitTest;IntegrationTest;Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-		<PackageReleaseNotes>BREAKING - FileArtifactReference.Observed() is removed, and teardown now deletes files a run discovered. FileArtifactFolderFinder previously marked its results observed, so a discovered file was never deleted; now it is an ordinary file reference and the timeline decides. Chain MarkReadonly() onto the FindArtifact / FindArtifacts call for a folder the run only reads. Requires TestFramework.Core 0.3.0.
-What to change: replace Observed() with MarkReadonly() on the declaring call. A timeline that discovers files in a folder it does not own - a build output directory, a shared drop location - must add MarkReadonly() before upgrading, or teardown will delete those files.
-Files the run creates itself, through UseRunDirectory() or SetupArtifact, are unaffected: they were removed at teardown before and still are.</PackageReleaseNotes>
+		<PackageReleaseNotes>Aligned with TestFramework.Core 0.4.0's run contract, plus a hardening pass: artifact file IO now honours the run's deadline token, so a stalled read or write stops when the step does. Rooted-but-not-fully-qualified paths ("\results\out.txt", "C:out.txt") are refused by name instead of silently escaping the run directory onto the current drive. The run-directory cleanup only ever removes a directory RunDirectoryStep itself created, a second UseRunDirectory() in one run is refused, and FindArtifact refuses a folder holding more than one file instead of taking the first by enumeration order - use FindArtifacts for a folder of many. Declared IO contracts now state variable inputs as required, so a missing producer is refused at plan time with the fix named. Requires TestFramework.Core 0.4.0.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup>

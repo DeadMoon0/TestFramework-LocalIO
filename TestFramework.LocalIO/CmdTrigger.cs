@@ -145,8 +145,11 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
 
         try
         {
-            // Bounded wait so the handle is released and the redirected pipes close.
-            process.WaitForExit(5000);
+            // Bounded wait so the handle is released and the redirected pipes close. One second, not
+            // more: this runs inside the step's grace window, which Core clamps to 1-5 s, so a longer
+            // block on a resisting tree would spend the whole window and get the attempt abandoned.
+            // A tree that outlives the wait is the OS's to reap; the licence gate drops late writes.
+            process.WaitForExit(1000);
         }
         catch (InvalidOperationException)
         {

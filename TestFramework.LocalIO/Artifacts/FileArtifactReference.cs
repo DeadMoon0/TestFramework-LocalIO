@@ -66,7 +66,8 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         return new ArtifactResolveResult<FileArtifactDescriber, FileArtifactData, FileArtifactReference>
         {
             Found = true,
-            Data = new FileArtifactData(await File.ReadAllBytesAsync(_path)) { Identifier = versionIdentifier },
+            // On the run's deadline: a stalled network share must stop the read when the step stops.
+            Data = new FileArtifactData(await File.ReadAllBytesAsync(_path, context.Deadline.Token).ConfigureAwait(false)) { Identifier = versionIdentifier },
         };
     }
 

@@ -81,7 +81,10 @@ public class FileExistsEventTests
             {
                 Assert.Equal("delay", entry.Key);
                 Assert.Equal(StepIOKind.Variable, entry.Kind);
-                Assert.False(entry.Required);
+
+                // Required, because that is the runtime truth: a named-but-missing delay variable
+                // throws on the first poll, so the contract must let the plan refuse it up front.
+                Assert.True(entry.Required);
                 Assert.Equal(typeof(TimeSpan), entry.DeclaredType);
             });
     }

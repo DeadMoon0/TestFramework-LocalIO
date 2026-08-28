@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Exceptions;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
@@ -39,7 +40,18 @@ public class RunDirectoryStep(VariableReference<string>? root = null) : Step<Emp
     /// <inheritdoc />
     public override Task<EmptyStepResultContext?> Execute(RunContext context)
     {
-        string rootPath = root?.GetValue(context.Variables) ?? Path.GetTempPath();
+        // Declaring two run directories is refused by name: SetVariable overwrites silently, so the
+        // second declaration would orphan the first directory and aim both cleanup deletes at one.
+        if (LocalPath.TryGetRunDirectory(context.Variables) is { } existing)
+        {
+            throw new FrameworkConfigurationException(
+                $"A LocalIO run directory was already declared (\"{existing}\").",
+                [$"One run directory per run; remove the second {nameof(RunDirectoryStep)}."]);
+        }
+
+        // Fully qualified from the start: a relative root would make every later resolution - and
+        // the recursive cleanup delete - depend on the process working directory at that moment.
+        string rootPath = Path.GetFullPath(root?.GetValue(context.Variables) ?? Path.GetTempPath());
         string runDirectory = Path.Combine(rootPath, $"tf-localio-{Guid.NewGuid():N}");
         Directory.CreateDirectory(runDirectory);
         context.Variables.SetVariable(LocalPath.RunDirectoryVariable, runDirectory);
@@ -56,8 +68,10 @@ public class RunDirectoryStep(VariableReference<string>? root = null) : Step<Emp
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
+        // Required, because that is the truth: a named-but-missing variable throws at run time, so
+        // declaring it optional traded a plan-time refusal with the fix named for a mid-run crash.
         if (root is not null && root.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(root.Identifier!.Identifier, StepIOKind.Variable, false, typeof(string)));
+            contract.Inputs.Add(new StepIOEntry(root.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
         contract.Outputs.Add(new StepIOEntry(LocalPath.RunDirectoryVariable, StepIOKind.Variable, true, typeof(string)));
     }
 }
@@ -86,6 +100,16 @@ public class RunDirectoryCleanupStep : Step<EmptyStepResultContext>
         if (runDirectory is null)
         {
             context.Logger.LogWarning("No LocalIO run directory was published, so there is nothing to clean up.");
+            return Task.FromResult<EmptyStepResultContext?>(null);
+        }
+
+        // The variable is a coordinate anything can overwrite, so the recursive delete never trusts
+        // it alone: only a directory shaped like the one Execute creates is ever removed. A rewritten
+        // variable can at worst aim this at another run's litter, never at a directory the framework
+        // did not create.
+        if (!LocalPath.IsRunDirectoryShaped(runDirectory))
+        {
+            context.Logger.LogWarning($"The published LocalIO run directory \"{runDirectory}\" is not a directory this step creates, so it is not removed.");
             return Task.FromResult<EmptyStepResultContext?>(null);
         }
 
