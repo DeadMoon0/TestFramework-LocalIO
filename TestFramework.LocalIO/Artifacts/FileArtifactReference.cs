@@ -25,8 +25,11 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
     /// <summary>
     /// Creates a file artifact reference from a variable-backed path.
     /// </summary>
+    /// <remarks>
+    /// Internal: <c>LocalIOExt.Artifacts.FileRef(path)</c> is the one way to make one, so there is not a second.
+    /// </remarks>
     /// <param name="path">The variable reference that resolves to the file path.</param>
-    public FileArtifactReference(VariableReference<string> path)
+    internal FileArtifactReference(VariableReference<string> path)
     {
         this.path = path;
         CanDeconstruct = true;

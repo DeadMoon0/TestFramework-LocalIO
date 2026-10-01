@@ -64,7 +64,7 @@ public static class FileArtifactExtension
 
     /// <summary>
     /// Adds a UTF-8 text file artifact at a reference set up beforehand, for example with
-    /// <see cref="FileArtifactReference.RemoveParentDirectoryIfEmpty"/>.
+    /// <c>LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty()</c>.
     /// </summary>
     /// <remarks>
     /// The reference carries its own cleanup options, so there is one way to set each: a flag here beside the
@@ -95,7 +95,7 @@ public static class FileArtifactExtension
 
     /// <summary>
     /// Adds a binary file artifact at a reference set up beforehand, for example with
-    /// <see cref="FileArtifactReference.RemoveParentDirectoryIfEmpty"/>.
+    /// <c>LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty()</c>.
     /// </summary>
     /// <remarks>
     /// The reference carries its own cleanup options, so there is one way to set each: a flag here beside the

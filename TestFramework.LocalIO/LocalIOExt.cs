@@ -28,8 +28,13 @@ public static class LocalIOExt
 /// <summary>
 /// Provides fluent helpers for LocalIO artifact kinds and references.
 /// </summary>
-public class LocalIOArtifacts
+public sealed class LocalIOArtifacts
 {
+    // Reached through LocalIOExt, which holds the one instance.
+    internal LocalIOArtifacts()
+    {
+    }
+
     /// <summary>
     /// Gets the file artifact kind used by LocalIO file artifacts.
     /// </summary>
@@ -49,8 +54,13 @@ public class LocalIOArtifacts
 /// <summary>
 /// Provides fluent helpers for LocalIO triggers.
 /// </summary>
-public class LocalIOTrigger
+public sealed class LocalIOTrigger
 {
+    // Reached through LocalIOExt, which holds the one instance.
+    internal LocalIOTrigger()
+    {
+    }
+
     /// <summary>
     /// Creates a command trigger that runs in the LocalIO run directory, or - when the timeline
     /// declared none - in the current working directory as it is at run time.
@@ -79,8 +89,13 @@ public class LocalIOTrigger
 /// <summary>
 /// Provides fluent helpers for LocalIO events.
 /// </summary>
-public class LocalIOEvents
+public sealed class LocalIOEvents
 {
+    // Reached through LocalIOExt, which holds the one instance.
+    internal LocalIOEvents()
+    {
+    }
+
     /// <summary>
     /// Creates a polling event that completes when a file exists, checking every 500 ms.
     /// </summary>

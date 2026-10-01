@@ -89,7 +89,7 @@ public class RunDirectoryStep : Step<EmptyStepResultContext>, IHasCleanupStep
 /// <summary>
 /// Removes the directory created by <see cref="RunDirectoryStep"/>.
 /// </summary>
-public class RunDirectoryCleanupStep : Step<EmptyStepResultContext>
+internal sealed class RunDirectoryCleanupStep : Step<EmptyStepResultContext>
 {
     /// <inheritdoc />
     public override string Name => "Run Directory Cleanup";

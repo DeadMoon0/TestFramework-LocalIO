@@ -385,7 +385,7 @@ public class LocalIOAdvancedTests
         Timeline timeline = Timeline.Create().Build();
 
         TimelineRun run = await timeline.SetupRun()
-            .AddArtifact("file", new FileArtifactReference(Var.Const("sample.txt")), new FileArtifactData([1, 2, 3]))
+            .AddArtifact("file", LocalIOExt.Artifacts.FileRef(Var.Const("sample.txt")), new FileArtifactData([1, 2, 3]))
             .RunAsync();
 
         ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference> resolved = run.ArtifactStore.GetFileArtifact("file");
