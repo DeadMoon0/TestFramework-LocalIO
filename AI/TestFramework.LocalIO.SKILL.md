@@ -112,7 +112,6 @@
     - waiting for files without an explicit timeout nearby
     - treating a path string as the same thing as a tracked artifact when the content matters later
     - declaring a pre-existing file without MarkReadonly(), which licenses cleanup to delete it
-    - reading FileArtifactData.Data in a loop; it copies the whole file on every access, use Content
 </anti_patterns>
 
 <important_type_map>
