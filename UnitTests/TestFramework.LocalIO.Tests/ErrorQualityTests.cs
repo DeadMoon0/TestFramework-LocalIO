@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
+using TestFramework.LocalIO.Artifacts;
 
 namespace TestFramework.LocalIO.Tests;
 
@@ -60,7 +61,7 @@ public class ErrorQualityTests
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
-                .AddFileArtifact("file", filePath, "content", removeParentDirectoryIfEmpty: true)
+                .AddFileArtifact("file", new FileArtifactReference(filePath).RemoveParentDirectoryIfEmpty(), "content")
                 .RunAsync();
 
             run.EnsureRanToCompletion();
@@ -90,7 +91,7 @@ public class ErrorQualityTests
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
-                .AddFileArtifact("file", filePath, "content", removeParentDirectoryIfEmpty: true)
+                .AddFileArtifact("file", new FileArtifactReference(filePath).RemoveParentDirectoryIfEmpty(), "content")
                 .RunAsync();
 
             run.EnsureRanToCompletion();

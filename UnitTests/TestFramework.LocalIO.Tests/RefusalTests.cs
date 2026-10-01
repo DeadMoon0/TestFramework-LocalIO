@@ -10,11 +10,11 @@ using TestFramework.Core.Variables;
 namespace TestFramework.LocalIO.Tests;
 
 /// <summary>
-/// Pins the refusals and guards from the source-level audit. Each test fails against the behaviour
-/// the audit found: the silent drive-root escape, the trusting cleanup delete, the silent second
-/// run directory and the first-file coin toss.
+/// Pins the places LocalIO refuses by name instead of guessing: a path that would silently escape the run
+/// directory onto the current drive, a cleanup delete that would trust a rewritten variable, a second run
+/// directory, and a single find that would pick whichever of two files came first.
 /// </summary>
-public class AuditHardeningTests
+public class RefusalTests
 {
     [WindowsFact]
     [Trait("Category", "WindowsOnly")]

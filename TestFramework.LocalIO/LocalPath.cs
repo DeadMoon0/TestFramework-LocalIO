@@ -37,11 +37,13 @@ internal static class LocalPath
         if (Path.IsPathRooted(raw))
         {
             throw new FrameworkConfigurationException(
-                $"The path \"{raw}\" is rooted but not fully qualified, so where it points depends on the current drive.",
-                [
+                $"The path \"{raw}\" is rooted but not fully qualified, so where it points depends on the current drive.")
+            {
+                RecoverySteps = [
                     "State the fully qualified path, drive letter included.",
                     "Or use a relative path, which resolves against the LocalIO run directory.",
-                ]);
+                ],
+            };
         }
 
         string? runDirectory = TryGetRunDirectory(variableStore);

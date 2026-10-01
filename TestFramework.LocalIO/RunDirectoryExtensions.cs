@@ -16,7 +16,7 @@ public static class RunDirectoryExtensions
     /// <param name="builder">The timeline builder.</param>
     /// <returns>The builder modifier for the run directory step.</returns>
     public static ITimelineBuilderModifier<EmptyStepResultContext> UseRunDirectory(this ITimelineBuilder builder)
-        => builder.Trigger(new RunDirectoryStep());
+        => builder.Trigger(new RunDirectoryStep(null));
 
     /// <summary>
     /// Creates a unique directory for the run under the given root, resolves every relative

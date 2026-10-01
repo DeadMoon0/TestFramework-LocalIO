@@ -19,9 +19,18 @@ namespace TestFramework.LocalIO;
 /// Every relative path handed to a LocalIO artifact, event or command resolves against this
 /// directory, so concurrent runs cannot read, overwrite or delete each other's files.
 /// </remarks>
-/// <param name="root">The directory the run directory is created in. Defaults to the system temp directory.</param>
-public class RunDirectoryStep(VariableReference<string>? root = null) : Step<EmptyStepResultContext>, IHasCleanupStep
+public class RunDirectoryStep : Step<EmptyStepResultContext>, IHasCleanupStep
 {
+    private readonly VariableReference<string>? root;
+
+    // Internal: the one way to build this step is the factory, which already offers each shape as its own
+    // overload. A public constructor beside it was a second way, and its optional parameter was a signature every
+    // compiled caller would have depended on.
+    internal RunDirectoryStep(VariableReference<string>? root)
+    {
+        this.root = root;
+    }
+
     /// <inheritdoc />
     public override string Name => "Run Directory";
 
@@ -45,8 +54,10 @@ public class RunDirectoryStep(VariableReference<string>? root = null) : Step<Emp
         if (LocalPath.TryGetRunDirectory(context.Variables) is { } existing)
         {
             throw new FrameworkConfigurationException(
-                $"A LocalIO run directory was already declared (\"{existing}\").",
-                [$"One run directory per run; remove the second {nameof(RunDirectoryStep)}."]);
+                $"A LocalIO run directory was already declared (\"{existing}\").")
+            {
+                RecoverySteps = [$"One run directory per run; remove the second {nameof(RunDirectoryStep)}."],
+            };
         }
 
         // Fully qualified from the start: a relative root would make every later resolution - and
@@ -70,9 +81,8 @@ public class RunDirectoryStep(VariableReference<string>? root = null) : Step<Emp
     {
         // Required, because that is the truth: a named-but-missing variable throws at run time, so
         // declaring it optional traded a plan-time refusal with the fix named for a mid-run crash.
-        if (root is not null && root.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(root.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
-        contract.Outputs.Add(new StepIOEntry(LocalPath.RunDirectoryVariable, StepIOKind.Variable, true, typeof(string)));
+        contract.Input(root);
+        contract.Output(new VariableIdentifier(LocalPath.RunDirectoryVariable), typeof(string));
     }
 }
 

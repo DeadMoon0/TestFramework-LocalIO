@@ -5,14 +5,44 @@ namespace TestFramework.LocalIO;
 /// <summary>
 /// Step result context for command execution.
 /// </summary>
-/// <param name="ExitCode">The shell process exit code.</param>
-/// <param name="StandardOutput">The captured standard output text.</param>
-/// <param name="StandardError">The captured standard error text.</param>
-/// <param name="Command">The resolved shell command that was executed.</param>
-/// <param name="WorkingDirectory">The resolved working directory used for the command.</param>
-public sealed record CmdResultContext(
-    int ExitCode,
-    string StandardOutput,
-    string StandardError,
-    string Command,
-    string WorkingDirectory) : StepResultContext;
+/// <remarks>
+/// Built only by <see cref="CmdTrigger"/>, so its constructor is internal and its members are properties: a
+/// command's result is the record most likely to learn something new - how long it ran, whether it was cut off -
+/// and a positional record would have broken every compiled reader the day it did.
+/// </remarks>
+public sealed record CmdResultContext : StepResultContext
+{
+    internal CmdResultContext(int exitCode, string standardOutput, string standardError, string command, string workingDirectory)
+    {
+        this.ExitCode = exitCode;
+        this.StandardOutput = standardOutput;
+        this.StandardError = standardError;
+        this.Command = command;
+        this.WorkingDirectory = workingDirectory;
+    }
+
+    /// <summary>
+    /// The shell process exit code.
+    /// </summary>
+    public int ExitCode { get; internal init; }
+
+    /// <summary>
+    /// The captured standard output text.
+    /// </summary>
+    public string StandardOutput { get; internal init; }
+
+    /// <summary>
+    /// The captured standard error text.
+    /// </summary>
+    public string StandardError { get; internal init; }
+
+    /// <summary>
+    /// The resolved shell command that was executed.
+    /// </summary>
+    public string Command { get; internal init; }
+
+    /// <summary>
+    /// The resolved working directory used for the command.
+    /// </summary>
+    public string WorkingDirectory { get; internal init; }
+}

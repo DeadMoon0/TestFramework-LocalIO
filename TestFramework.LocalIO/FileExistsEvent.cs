@@ -14,10 +14,20 @@ namespace TestFramework.LocalIO;
 /// <summary>
 /// Polls until a file exists at the resolved path.
 /// </summary>
-/// <param name="path">The file path to watch.</param>
-/// <param name="pollDelay">The delay between polling attempts. Defaults to 500 ms when omitted.</param>
-public class FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay = null) : SequentialEvent<FileExistsEvent, EmptyStepResultContext>
+public class FileExistsEvent : SequentialEvent<FileExistsEvent, EmptyStepResultContext>
 {
+    private readonly VariableReference<string> path;
+    private readonly VariableReference<TimeSpan>? pollDelay;
+
+    // Internal: the one way to build this step is the factory, which already offers each shape as its own
+    // overload. A public constructor beside it was a second way, and its optional parameter was a signature every
+    // compiled caller would have depended on.
+    internal FileExistsEvent(VariableReference<string> path, VariableReference<TimeSpan>? pollDelay)
+    {
+        this.path = path;
+        this.pollDelay = pollDelay;
+    }
+
     /// <inheritdoc />
     public override string Name => "File Exists Event";
 
@@ -91,7 +101,9 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     public override Task<SequentialPollingResult<EmptyStepResultContext>> OnSequentialPolling(RunContext context)
     {
         string _path = ResolvePath(context.Variables);
-        return Task.FromResult(new SequentialPollingResult<EmptyStepResultContext>(File.Exists(_path), null, pollDelay?.GetValue(context.Variables) ?? TimeSpan.FromSeconds(0.5)));
+        return Task.FromResult(File.Exists(_path)
+            ? SequentialPollingResult<EmptyStepResultContext>.Done(null)
+            : SequentialPollingResult<EmptyStepResultContext>.NotYet(pollDelay?.GetValue(context.Variables) ?? TimeSpan.FromSeconds(0.5)));
     }
 
     private string ResolvePath(VariableStore variableStore)
@@ -103,11 +115,9 @@ public class FileExistsEvent(VariableReference<string> path, VariableReference<T
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
-        if (path.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(path.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
+        contract.Input(path);
         // Required, because that is the truth: a named-but-missing variable throws at run time, so
         // declaring it optional traded a plan-time refusal with the fix named for a mid-poll crash.
-        if (pollDelay is not null && pollDelay.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(pollDelay.Identifier!.Identifier, StepIOKind.Variable, true, typeof(System.TimeSpan)));
+        contract.Input(pollDelay);
     }
 }

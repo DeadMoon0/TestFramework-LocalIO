@@ -52,11 +52,13 @@ public class FileArtifactFolderFinder(VariableReference<string> folderPath) : Ar
         {
             string names = string.Join(", ", files.Take(5).Select(Path.GetFileName)) + (files.Length > 5 ? ", ..." : string.Empty);
             throw new FrameworkConfigurationException(
-                $"The folder \"{folder}\" holds more than one file ({names}), so which one is the artifact is ambiguous.",
-                [
+                $"The folder \"{folder}\" holds more than one file ({names}), so which one is the artifact is ambiguous.")
+            {
+                RecoverySteps = [
                     "Point the finder at a folder that holds the one file.",
                     "Or discover them all with FindArtifacts, which takes every file.",
-                ]);
+                ],
+            };
         }
 
         return Task.FromResult<ArtifactFinderResult?>(new ArtifactFinderResult(new FileArtifactReference(files[0])));

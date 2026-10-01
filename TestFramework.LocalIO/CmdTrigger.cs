@@ -19,14 +19,20 @@ namespace TestFramework.LocalIO;
 /// On Windows this uses <c>CMD.EXE /C</c>; on Unix-like systems it prefers <c>bash -c</c>
 /// and falls back to <c>/bin/sh -c</c> if bash is not present.
 /// </summary>
-/// <param name="command">The command to execute.</param>
-/// <param name="workingDirectory">
-/// The working directory for the command. When omitted the command runs in the LocalIO run
-/// directory, or - when the timeline declared none - in <see cref="Environment.CurrentDirectory"/>
-/// as it is at RUN time.
-/// </param>
-public class CmdTrigger(VariableReference<string> command, VariableReference<string>? workingDirectory = null) : Step<CmdResultContext>
+public class CmdTrigger : Step<CmdResultContext>
 {
+    private readonly VariableReference<string> command;
+    private readonly VariableReference<string>? workingDirectory;
+
+    // Internal: the one way to build this step is the factory, which already offers each shape as its own
+    // overload. A public constructor beside it was a second way, and its optional parameter was a signature every
+    // compiled caller would have depended on.
+    internal CmdTrigger(VariableReference<string> command, VariableReference<string>? workingDirectory)
+    {
+        this.command = command;
+        this.workingDirectory = workingDirectory;
+    }
+
     /// <inheritdoc />
     public override bool DoesReturn => true;
 
@@ -178,9 +184,7 @@ public class CmdTrigger(VariableReference<string> command, VariableReference<str
     /// <inheritdoc />
     public override void DeclareIO(StepIOContract contract)
     {
-        if (command.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(command.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
-        if (workingDirectory is not null && workingDirectory.HasIdentifier)
-            contract.Inputs.Add(new StepIOEntry(workingDirectory.Identifier!.Identifier, StepIOKind.Variable, true, typeof(string)));
+        contract.Input(command);
+        contract.Input(workingDirectory);
     }
 }

@@ -4,7 +4,7 @@
 		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Title>TestFramework.LocalIO</Title>
-		<Version>0.4.0</Version>
+		<Version>0.5.0</Version>
 		<Authors>DeadMoon0</Authors>
 		<Product>TestFramework</Product>
 		<Description>Manage your Local IO with a Framework Timeline.</Description>
@@ -16,7 +16,7 @@
 		<PackageTags>Test;UnitTest;IntegrationTest;Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-		<PackageReleaseNotes>Aligned with TestFramework.Core 0.4.0's run contract, plus a hardening pass: artifact file IO now honours the run's deadline token, so a stalled read or write stops when the step does. Rooted-but-not-fully-qualified paths ("\results\out.txt", "C:out.txt") are refused by name instead of silently escaping the run directory onto the current drive. The run-directory cleanup only ever removes a directory RunDirectoryStep itself created, a second UseRunDirectory() in one run is refused, and FindArtifact refuses a folder holding more than one file instead of taking the first by enumeration order - use FindArtifacts for a folder of many. Declared IO contracts now state variable inputs as required, so a missing producer is refused at plan time with the fix named. Requires TestFramework.Core 0.4.0.</PackageReleaseNotes>
+		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty: pass new FileArtifactReference(path).RemoveParentDirectoryIfEmpty() instead. CmdTrigger, FileExistsEvent and RunDirectoryStep are built only through LocalIOExt and UseRunDirectory, so their constructors are internal. FileArtifactData.Data is removed; read Content.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -42,7 +42,7 @@
 	</Target>
 
 	<ItemGroup>
-	  <PackageReference Include="TestFramework.Core" Version="0.4.0" />
+	  <PackageReference Include="TestFramework.Core" Version="0.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>

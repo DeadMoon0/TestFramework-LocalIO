@@ -60,7 +60,7 @@ public class LocalIOTrigger
     /// <remarks>On Windows this uses <c>CMD.EXE /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to <c>/bin/sh -c</c>.</remarks>
     public CmdTrigger Cmd(VariableReference<string> command)
     {
-        return new CmdTrigger(command);
+        return new CmdTrigger(command, null);
     }
 
     /// <summary>
@@ -82,13 +82,13 @@ public class LocalIOTrigger
 public class LocalIOEvents
 {
     /// <summary>
-    /// Creates a polling event that completes when a file exists.
+    /// Creates a polling event that completes when a file exists, checking every 500 ms.
     /// </summary>
     /// <param name="path">The path to watch.</param>
     /// <returns>A file-exists event.</returns>
     public FileExistsEvent FileExists(VariableReference<string> path)
     {
-        return new FileExistsEvent(path);
+        return new FileExistsEvent(path, null);
     }
 
     /// <summary>

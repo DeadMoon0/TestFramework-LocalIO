@@ -58,13 +58,26 @@ public static class FileArtifactExtension
     /// <param name="identifier">The artifact identifier.</param>
     /// <param name="path">The file path represented by the artifact.</param>
     /// <param name="utf8text">The UTF-8 text content.</param>
-    /// <param name="removeParentDirectoryIfEmpty">Removes the parent directory during cleanup when the file was its last remaining entry.</param>
     /// <returns>The current run builder.</returns>
-    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, string utf8text, bool removeParentDirectoryIfEmpty = false)
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, string utf8text)
+        => run.AddFileArtifact(identifier, new FileArtifactReference(path), utf8text);
+
+    /// <summary>
+    /// Adds a UTF-8 text file artifact at a reference set up beforehand, for example with
+    /// <see cref="FileArtifactReference.RemoveParentDirectoryIfEmpty"/>.
+    /// </summary>
+    /// <remarks>
+    /// The reference carries its own cleanup options, so there is one way to set each: a flag here beside the
+    /// reference's own method would have been a second, and a bare <c>true</c> at the call site says nothing.
+    /// </remarks>
+    /// <param name="run">The timeline run builder.</param>
+    /// <param name="identifier">The artifact identifier.</param>
+    /// <param name="reference">Where the file lives, and how cleanup treats it.</param>
+    /// <param name="utf8text">The UTF-8 text content.</param>
+    /// <returns>The current run builder.</returns>
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, FileArtifactReference reference, string utf8text)
     {
-        FileArtifactReference reference = new FileArtifactReference(path);
-        if (removeParentDirectoryIfEmpty)
-            reference.RemoveParentDirectoryIfEmpty();
+        ArgumentNullException.ThrowIfNull(reference);
 
         return run.AddArtifact(identifier, reference, new FileArtifactData(Encoding.UTF8.GetBytes(utf8text)));
     }
@@ -76,13 +89,26 @@ public static class FileArtifactExtension
     /// <param name="identifier">The artifact identifier.</param>
     /// <param name="path">The file path represented by the artifact.</param>
     /// <param name="data">The binary content.</param>
-    /// <param name="removeParentDirectoryIfEmpty">Removes the parent directory during cleanup when the file was its last remaining entry.</param>
     /// <returns>The current run builder.</returns>
-    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, byte[] data, bool removeParentDirectoryIfEmpty = false)
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, string path, byte[] data)
+        => run.AddFileArtifact(identifier, new FileArtifactReference(path), data);
+
+    /// <summary>
+    /// Adds a binary file artifact at a reference set up beforehand, for example with
+    /// <see cref="FileArtifactReference.RemoveParentDirectoryIfEmpty"/>.
+    /// </summary>
+    /// <remarks>
+    /// The reference carries its own cleanup options, so there is one way to set each: a flag here beside the
+    /// reference's own method would have been a second, and a bare <c>true</c> at the call site says nothing.
+    /// </remarks>
+    /// <param name="run">The timeline run builder.</param>
+    /// <param name="identifier">The artifact identifier.</param>
+    /// <param name="reference">Where the file lives, and how cleanup treats it.</param>
+    /// <param name="data">The binary content.</param>
+    /// <returns>The current run builder.</returns>
+    public static ITimelineRunBuilder AddFileArtifact(this ITimelineRunBuilder run, ArtifactIdentifier identifier, FileArtifactReference reference, byte[] data)
     {
-        FileArtifactReference reference = new FileArtifactReference(path);
-        if (removeParentDirectoryIfEmpty)
-            reference.RemoveParentDirectoryIfEmpty();
+        ArgumentNullException.ThrowIfNull(reference);
 
         return run.AddArtifact(identifier, reference, new FileArtifactData(data));
     }
