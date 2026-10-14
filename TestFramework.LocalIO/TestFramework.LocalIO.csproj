@@ -16,7 +16,7 @@
 		<PackageTags>Test;UnitTest;IntegrationTest;Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty: pass LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty() instead. Steps and file references are built only through LocalIOExt and UseRunDirectory, so their constructors are internal. FileArtifactData.Data is removed; read Content.</PackageReleaseNotes>
+		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty: pass LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty() instead. Steps and file references are built only through LocalIOExt and UseRunDirectory, so their constructors are internal. FileArtifactData.Data is removed; read Content. A command that exits while something it started still holds its output now finishes with what it wrote, and what it started is stopped with the step instead of outliving the run.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup>
