@@ -51,7 +51,7 @@ public class LocalIoSample
 			.UseRunDirectory()
 			.Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello > out.txt")))
 			.WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt")))
-			.WithTimeOut(TimeSpan.FromSeconds(10))
+			.WithTimeout(TimeSpan.FromSeconds(10))
 			.Build();
 
 		TimelineRun run = await timeline.SetupRun().RunAsync();

@@ -28,7 +28,7 @@ public class LocalIOAdvancedTests
             File.WriteAllText(Path.Combine(tempDir, "marker.txt"), "ready");
             Timeline timeline = Timeline.Create()
                 .Trigger(LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"), Var.Ref<string>("cwd")))
-                .Name("cmd")
+                .Label("cmd")
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
@@ -54,7 +54,7 @@ public class LocalIOAdvancedTests
     {
         Timeline timeline = Timeline.Create()
             .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("exit /b 7")))
-            .Name("cmd")
+            .Label("cmd")
             .Build();
 
         TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -74,7 +74,7 @@ public class LocalIOAdvancedTests
         {
             Timeline timeline = Timeline.Create()
                 .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello&&echo warning 1>&2&&exit /b 3"), Var.Const(tempDir)))
-                .Name("cmd")
+                .Label("cmd")
                 .GetCommandResult("cmdResult")
                 .GetExitCode("cmdExitCode")
                 .GetStandardOutput("cmdStdOut")
@@ -126,8 +126,8 @@ public class LocalIOAdvancedTests
                 .Trigger(LocalIOExt.Trigger.Cmd(
                     Var.Const("ping 127.0.0.1 -n 6 > nul && echo leaked > sentinel.txt"),
                     Var.Const(tempDir)))
-                .Name("cmd")
-                .WithTimeOut(TimeSpan.FromMilliseconds(100))
+                .Label("cmd")
+                .WithTimeout(TimeSpan.FromMilliseconds(100))
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -160,7 +160,7 @@ public class LocalIOAdvancedTests
             // a bare "echo" with $0 = "hello" and exit 0 without ever creating the file.
             Timeline timeline = Timeline.Create()
                 .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello world > out.txt"), Var.Const(tempDir)))
-                .Name("cmd")
+                .Label("cmd")
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();
@@ -190,8 +190,8 @@ public class LocalIOAdvancedTests
 
             Timeline timeline = Timeline.Create()
                 .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(tempDir)))
-                .Name("cmd")
-                .WithTimeOut(TimeSpan.FromSeconds(60))
+                .Label("cmd")
+                .WithTimeout(TimeSpan.FromSeconds(60))
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();

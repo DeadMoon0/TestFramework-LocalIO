@@ -29,8 +29,8 @@ public class ErrorQualityTests
             // exactly what happened when this was retried at 400 ms.
             Timeline timeline = Timeline.Create()
                 .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(missingPath), Var.Const(TimeSpan.FromMilliseconds(20))))
-                .WithTimeOut(TimeSpan.FromSeconds(5))
-                .Name("wait")
+                .WithTimeout(TimeSpan.FromSeconds(5))
+                .Label("wait")
                 .Build();
 
             TimelineRun run = await timeline.SetupRun().RunAsync();

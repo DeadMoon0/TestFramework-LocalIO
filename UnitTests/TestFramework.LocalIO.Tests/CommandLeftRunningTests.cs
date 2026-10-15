@@ -59,8 +59,8 @@ public sealed class CommandLeftRunningTests : IDisposable
         Stopwatch elapsed = Stopwatch.StartNew();
 
         TimelineRun run = await Timeline.Create()
-            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(_directory))).Name("cmd")
-            .WithTimeOut(TimeSpan.FromSeconds(60))
+            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(_directory))).Label("cmd")
+            .WithTimeout(TimeSpan.FromSeconds(60))
             .Build()
             .SetupRun()
             .RunAsync();
@@ -78,8 +78,8 @@ public sealed class CommandLeftRunningTests : IDisposable
     {
         // Shorter than the pipe grace, so the deadline ends the step while the shell is already gone.
         TimelineRun run = await Timeline.Create()
-            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(_directory))).Name("cmd")
-            .WithTimeOut(TimeSpan.FromMilliseconds(800))
+            .Trigger(LocalIOExt.Trigger.Cmd(Var.Const(command), Var.Const(_directory))).Label("cmd")
+            .WithTimeout(TimeSpan.FromMilliseconds(800))
             .Build()
             .SetupRun()
             .RunAsync();

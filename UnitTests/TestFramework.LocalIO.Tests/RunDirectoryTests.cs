@@ -18,10 +18,10 @@ public class RunDirectoryTests
         Timeline timeline = Timeline.Create()
             .UseRunDirectory()
             .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello > out.txt")))
-            .Name("cmd")
+            .Label("cmd")
             .GetWorkingDirectory("cwd")
             .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt")))
-            .WithTimeOut(TimeSpan.FromSeconds(10))
+            .WithTimeout(TimeSpan.FromSeconds(10))
             .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const("out.txt")))
             .Build();
 

@@ -23,7 +23,7 @@ using TestFramework.LocalIO;
 Timeline timeline = Timeline.Create()
     .UseRunDirectory()
     .Trigger(LocalIOExt.Trigger.Cmd(Var.Const("echo hello > out.txt")))
-    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt"))).WithTimeOut(TimeSpan.FromSeconds(10))
+    .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const("out.txt"))).WithTimeout(TimeSpan.FromSeconds(10))
     .RegisterArtifact("outFile", LocalIOExt.Artifacts.FileRef(Var.Const("out.txt")))
     .Build();
 
@@ -56,7 +56,7 @@ using TestFramework.LocalIO;
 
 Timeline timeline = Timeline.Create()
     .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(outputPath)))
-    .WithTimeOut(TimeSpan.FromSeconds(10))
+    .WithTimeout(TimeSpan.FromSeconds(10))
     .Build();
 ```
 
@@ -118,7 +118,7 @@ Use file artifacts only when the system under test already communicates through 
 - On Unix-like systems it prefers `/bin/bash -c <cmd>` if `bash` is available, otherwise `/bin/sh -c <cmd>` is used as a fallback.
 - Treat this as shell-compatible behavior rather than shell-identical behavior: quoting, built-in commands, and environment expansion can still differ between Windows and Unix-like systems.
 - The trigger returns the external process exit code as its step result. Non-zero exit codes are not rewritten; assert on them explicitly when failure is expected.
-- For long-running commands, prefer timeline timeouts such as `.WithTimeOut(...)` so the run cancels the command instead of hanging indefinitely.
+- For long-running commands, prefer timeline timeouts such as `.WithTimeout(...)` so the run cancels the command instead of hanging indefinitely.
 - When the command writes files that later steps consume, prefer a dedicated working directory so the file polling event and file artifact reference both point at a predictable location.
 
 ## Platform Support Contract

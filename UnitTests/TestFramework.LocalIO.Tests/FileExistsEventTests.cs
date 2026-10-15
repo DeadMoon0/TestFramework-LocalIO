@@ -24,7 +24,7 @@ public class FileExistsEventTests
             File.WriteAllText(path, "ready");
             Timeline timeline = Timeline.Create()
                 .WaitForEvent(LocalIOExt.Events.FileExists(Var.Ref<string>("path"), Var.Ref<TimeSpan>("delay")))
-                .Name("file-exists")
+                .Label("file-exists")
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
@@ -49,7 +49,7 @@ public class FileExistsEventTests
     {
         Timeline timeline = Timeline.Create()
             .WaitForEvent(LocalIOExt.Events.FileExists(Var.Ref<string>("path")))
-            .Name("file-exists")
+            .Label("file-exists")
             .Build();
 
         TimelineRun run = await timeline.SetupRun()

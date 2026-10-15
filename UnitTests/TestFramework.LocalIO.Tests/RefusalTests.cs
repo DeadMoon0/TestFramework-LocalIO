@@ -25,7 +25,7 @@ public class RefusalTests
         Timeline timeline = Timeline.Create()
             .UseRunDirectory()
             .WaitForEvent(LocalIOExt.Events.FileExists(Var.Const(@"\results\out.txt")))
-            .WithTimeOut(TimeSpan.FromSeconds(5))
+            .WithTimeout(TimeSpan.FromSeconds(5))
             .Build();
 
         TimelineRun run = await timeline.SetupRun().RunAsync();
