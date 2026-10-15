@@ -26,7 +26,7 @@ public class FileArtifactReferenceTests
 
             Timeline timeline = Timeline.Create()
                 .RegisterArtifact("file", LocalIOExt.Artifacts.FileRef(Var.Ref<string>("path")))
-                .SetVariable("path", Var.Const(decoyPath))
+                .SetVariable("path", decoyPath)
                 .Build();
 
             TimelineRun run = await timeline.SetupRun()
