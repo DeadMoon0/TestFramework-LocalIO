@@ -354,29 +354,27 @@ public class LocalIOAdvancedTests
     }
 
     [Fact]
-    public void AddFileArtifact_WithUtf8Text_EncodesDataAndUsesProvidedPath()
+    public async Task AddFileArtifact_WithUtf8Text_WritesThatTextToTheGivenPath()
     {
-        FakeTimelineRunBuilder builder = new();
+        string path = Path.Combine(CreateTempDirectory(), "sample.txt");
 
-        builder.AddFileArtifact("file", "sample.txt", "hello");
+        TimelineRun run = await Timeline.Create().Build().SetupRun()
+            .AddFileArtifact("file", path, "hello")
+            .RunAsync();
 
-        Assert.NotNull(builder.ArtifactIdentifier);
-        Assert.Equal("file", builder.ArtifactIdentifier!.Identifier);
-        Assert.NotNull(builder.Reference);
-        Assert.Equal("hello", builder.Data!.DataAsUtf8String);
+        Assert.Equal("hello", run.ArtifactStore.GetFileArtifact("file").Last.DataAsUtf8String);
     }
 
     [Fact]
-    public void AddFileArtifact_WithBinaryData_PreservesBytesAndUsesProvidedPath()
+    public async Task AddFileArtifact_WithBinaryData_WritesThoseBytesToTheGivenPath()
     {
-        FakeTimelineRunBuilder builder = new();
+        string path = Path.Combine(CreateTempDirectory(), "sample.bin");
 
-        builder.AddFileArtifact("file", "sample.bin", [1, 2, 3]);
+        TimelineRun run = await Timeline.Create().Build().SetupRun()
+            .AddFileArtifact("file", path, [1, 2, 3])
+            .RunAsync();
 
-        Assert.NotNull(builder.ArtifactIdentifier);
-        Assert.Equal("file", builder.ArtifactIdentifier!.Identifier);
-        Assert.NotNull(builder.Reference);
-        Assert.Equal(new byte[] { 1, 2, 3 }, builder.Data!.Content.ToArray());
+        Assert.Equal(new byte[] { 1, 2, 3 }, run.ArtifactStore.GetFileArtifact("file").Last.Content.ToArray());
     }
 
     [Fact]
@@ -398,29 +396,5 @@ public class LocalIOAdvancedTests
         string path = Path.Combine(Path.GetTempPath(), $"localio-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
-    }
-
-    private sealed class FakeTimelineRunBuilder : ITimelineRunBuilder
-    {
-        public ArtifactIdentifier? ArtifactIdentifier { get; private set; }
-        public FileArtifactReference? Reference { get; private set; }
-        public FileArtifactData? Data { get; private set; }
-
-        public ITimelineRunBuilder AddArtifact<TArtifactDescriber, TArtifactData, TArtifactReference>(ArtifactIdentifier identifier, ArtifactReference<TArtifactReference, TArtifactDescriber, TArtifactData> reference, ArtifactData<TArtifactData, TArtifactDescriber, TArtifactReference> data)
-            where TArtifactDescriber : ArtifactDescriber<TArtifactDescriber, TArtifactData, TArtifactReference>, new()
-            where TArtifactData : ArtifactData<TArtifactData, TArtifactDescriber, TArtifactReference>
-            where TArtifactReference : ArtifactReference<TArtifactReference, TArtifactDescriber, TArtifactData>
-        {
-            ArtifactIdentifier = identifier;
-            Reference = (FileArtifactReference)(object)reference;
-            Data = (FileArtifactData)(object)data;
-            return this;
-        }
-
-        public ITimelineRunBuilder AddVariable<T>(VariableIdentifier identifier, T value) => this;
-
-        public Task<TimelineRun> RunAsync() => Task.FromResult<TimelineRun>(null!);
-
-        public ITimelineRunBuilder SetEnv(IEnvironmentProvider environment) => this;
     }
 }
