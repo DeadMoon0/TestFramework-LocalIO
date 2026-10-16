@@ -49,8 +49,9 @@ public class RunDirectoryStep : Step<EmptyStepResultContext>, IHasCleanupStep
     /// <inheritdoc />
     public override Task<EmptyStepResultContext?> Execute(RunContext context)
     {
-        // Declaring two run directories is refused by name: SetVariable overwrites silently, so the
-        // second declaration would orphan the first directory and aim both cleanup deletes at one.
+        // The plan already refuses a second UseRunDirectory. This stays for a writer that never declared the
+        // variable: SetVariable overwrites silently, so it would orphan this directory and aim both cleanup
+        // deletes at one.
         if (LocalPath.TryGetRunDirectory(context.Variables) is { } existing)
         {
             throw new FrameworkConfigurationException(
@@ -82,7 +83,9 @@ public class RunDirectoryStep : Step<EmptyStepResultContext>, IHasCleanupStep
         // Required, because that is the truth: a named-but-missing variable throws at run time, so
         // declaring it optional traded a plan-time refusal with the fix named for a mid-run crash.
         contract.Input(root);
-        contract.Output(new VariableIdentifier(LocalPath.RunDirectoryVariable), typeof(string));
+        // Exclusive: a second run directory is refused while the run is planned, naming both steps, rather than
+        // the second one silently orphaning the first directory.
+        contract.ExclusiveOutput(new VariableIdentifier(LocalPath.RunDirectoryVariable), typeof(string));
     }
 }
 

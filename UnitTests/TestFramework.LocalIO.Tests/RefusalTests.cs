@@ -66,8 +66,10 @@ public class RefusalTests
     }
 
     [Fact]
-    public async Task ASecondRunDirectoryIsRefusedByName()
+    public async Task ASecondRunDirectoryIsRefusedWhileTheRunIsPlanned()
     {
+        // Before anything exists: the refusal used to come from the second step at run time, after the first
+        // directory had been created.
         string root = CreateTempDirectory();
 
         try
@@ -77,13 +79,11 @@ public class RefusalTests
                 .UseRunDirectory(Var.Ref<string>("root"))
                 .Build();
 
-            TimelineRun run = await timeline.SetupRun()
-                .AddVariable("root", root)
-                .RunAsync();
+            FrameworkConfigurationException refusal = await Assert.ThrowsAsync<FrameworkConfigurationException>(
+                () => timeline.SetupRun().AddVariable("root", root).RunAsync());
 
-            TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
-            Assert.Contains(exception.FailedSteps, step =>
-                ExceptionChainContains(step.StepException, "already declared"));
+            Assert.Contains(LocalPath.RunDirectoryVariable, refusal.Message, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
         }
         finally
         {
