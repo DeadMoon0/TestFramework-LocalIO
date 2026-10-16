@@ -114,7 +114,9 @@ Use file artifacts only when the system under test already communicates through 
 ## Command Behavior (cross-platform)
 
 - `LocalIOExt.Trigger.Cmd(...)` executes a shell command and returns the external process exit code as the step result.
-- On Windows this uses `CMD.EXE /C <cmd>`.
+- `Cmd` inserts every value verbatim: a run value inside the line is shell syntax. When a value goes on the command line, use `LocalIOExt.Trigger.Exec(program, args...)` (or `ExecIn(workingDirectory, program, args...)`), which starts the program with no shell and passes each argument as exactly one argument.
+- Each output stream keeps its last 1 MiB of text, led by a line counting anything dropped; the run's log shows the last 8 KiB. A command that times out fails with a `TimeoutException` carrying the tail of what it had written.
+- On Windows this uses `%ComSpec% /C <cmd>`.
 - On Unix-like systems it prefers `/bin/bash -c <cmd>` if `bash` is available, otherwise `/bin/sh -c <cmd>` is used as a fallback.
 - Treat this as shell-compatible behavior rather than shell-identical behavior: quoting, built-in commands, and environment expansion can still differ between Windows and Unix-like systems.
 - The trigger returns the external process exit code as its step result. Non-zero exit codes are not rewritten; assert on them explicitly when failure is expected.

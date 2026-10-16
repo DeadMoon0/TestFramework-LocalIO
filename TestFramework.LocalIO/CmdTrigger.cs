@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using TestFramework.Core.Artifacts;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Logging;
 using TestFramework.Core.Steps;
@@ -15,91 +16,78 @@ using TestFramework.Core.Variables;
 namespace TestFramework.LocalIO;
 
 /// <summary>
-/// Executes a shell command and returns the process exit code.
-/// On Windows this uses <c>CMD.EXE /C</c>; on Unix-like systems it prefers <c>bash -c</c>
-/// and falls back to <c>/bin/sh -c</c> if bash is not present.
+/// Executes a command and returns the process exit code.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Two shapes, built through <see cref="LocalIOTrigger"/>. <c>Cmd</c> hands one line to the platform shell -
+/// <c>%ComSpec% /C</c> on Windows, <c>bash -c</c> (or <c>/bin/sh -c</c>) elsewhere - and inserts every value
+/// verbatim, so a run value that reaches it is shell syntax. <c>Exec</c> starts a program directly with each
+/// argument passed as its own argument, no shell, so a value is only ever a value.
+/// </para>
+/// <para>
+/// Each stream keeps its last <see cref="PipeCapture.Limit"/> characters; the log shows the last
+/// <see cref="LogTail"/> of them.
+/// </para>
+/// </remarks>
 public class CmdTrigger : Step<CmdResultContext>
 {
-    private readonly VariableReference<string> command;
+    /// <summary>The most of one stream that is written to the run's log; the step's result keeps more.</summary>
+    internal const int LogTail = 8 * 1024;
+
+    private readonly VariableReference<string>? command;
+    private readonly VariableReference<string>? program;
+    private readonly IReadOnlyList<VariableReference<string>> arguments;
     private readonly VariableReference<string>? workingDirectory;
 
     // Internal: the one way to build this step is the factory, which already offers each shape as its own
     // overload. A public constructor beside it was a second way, and its optional parameter was a signature every
     // compiled caller would have depended on.
-    internal CmdTrigger(VariableReference<string> command, VariableReference<string>? workingDirectory)
+    private CmdTrigger(
+        VariableReference<string>? command,
+        VariableReference<string>? program,
+        IReadOnlyList<VariableReference<string>> arguments,
+        VariableReference<string>? workingDirectory)
     {
         this.command = command;
+        this.program = program;
+        this.arguments = arguments;
         this.workingDirectory = workingDirectory;
     }
+
+    internal static CmdTrigger Shell(VariableReference<string> command, VariableReference<string>? workingDirectory)
+        => new(command, null, [], workingDirectory);
+
+    internal static CmdTrigger Direct(VariableReference<string> program, IReadOnlyList<VariableReference<string>> arguments, VariableReference<string>? workingDirectory)
+        => new(null, program, [.. arguments], workingDirectory);
 
     /// <inheritdoc />
     public override bool DoesReturn => true;
 
     /// <inheritdoc />
-    public override string Name => "Cmd Trigger";
+    public override string Name => program is null ? "Cmd Trigger" : "Exec Trigger";
 
     /// <inheritdoc />
-    public override string Description => "A trigger that executes a shell command and returns the process exit code.";
+    public override string Description => program is null
+        ? "A trigger that executes a shell command and returns the process exit code."
+        : "A trigger that starts a program with its arguments, no shell, and returns the process exit code.";
 
     /// <inheritdoc />
     public override Step<CmdResultContext> Clone()
     {
-        return new CmdTrigger(command, workingDirectory).WithClonedOptions(this);
+        return new CmdTrigger(command, program, arguments, workingDirectory).WithClonedOptions(this);
     }
 
     /// <inheritdoc />
     public override async Task<CmdResultContext?> Execute(RunContext context)
     {
-        string? cmdText = command.GetValue(context.Variables);
-        if (cmdText is null)
-            throw new FrameworkStateException("CmdTrigger command is null.");
-        string? configuredWorkingDir = workingDirectory?.GetValue(context.Variables);
-        string workingDir = configuredWorkingDir is null
-            ? LocalPath.TryGetRunDirectory(context.Variables) ?? Environment.CurrentDirectory
-            : LocalPath.Resolve(configuredWorkingDir, context.Variables);
-        ProcessStartInfo info;
+        string workingDir = ResolveWorkingDirectory(context);
+        ProcessStartInfo info = program is null
+            ? ShellStart(Required(command!, "command", context), workingDir)
+            : DirectStart(Required(program, "program", context), [.. arguments.Select(argument => Required(argument, "argument", context))], workingDir);
+        string commandLine = Describe(info);
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            info = new ProcessStartInfo
-            {
-                FileName = "CMD.EXE",
-                // Intentionally NOT ArgumentList: CMD.EXE /C consumes the raw remainder of the
-                // command line. Going through ArgumentList would quote anything containing a
-                // space and break operators such as &&, > and 1>&2.
-                Arguments = "/C " + cmdText,
-                UseShellExecute = false,
-                WorkingDirectory = workingDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-        }
-        else
-        {
-            // Prefer bash if available, otherwise fall back to sh
-            string shell = File.Exists("/bin/bash") ? "/bin/bash" : "/bin/sh";
-
-            // Through setsid where there is one, so the shell leads a process group its children stay in, and
-            // the group can be stopped after the shell itself has exited.
-            info = new ProcessStartInfo
-            {
-                FileName = CommandProcessTree.SetSid ?? shell,
-                UseShellExecute = false,
-                WorkingDirectory = workingDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            if (CommandProcessTree.SetSid is not null)
-                info.ArgumentList.Add(shell);
-
-            // The whole command must arrive as ONE argv entry. Assigning it to Arguments would
-            // tokenize it, so "echo hello > out.txt" would run bare "echo" with $0 = "hello".
-            info.ArgumentList.Add("-c");
-            info.ArgumentList.Add(cmdText);
-        }
-
-        using Process process = Process.Start(info) ?? throw new FrameworkStateException("Could not start the CMD process.");
+        using Process process = Start(info, commandLine, workingDir);
         using CommandProcessTree tree = CommandProcessTree.Own(process, startedThroughSetSid: !OperatingSystem.IsWindows() && CommandProcessTree.SetSid is not null);
 
         // Drain both pipes concurrently BEFORE waiting for exit: a child that writes more than the
@@ -113,24 +101,186 @@ public class CmdTrigger : Step<CmdResultContext>
             await process.WaitForExitAsync(context.Deadline.Token);
             await DrainAsync(standardOutput, standardError, drain, tree, context);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (context.Deadline.HasExpired)
         {
             // The shell may have exited already, with what it started still running: the tree is stopped as a
-            // whole, not walked from a root that may be gone.
+            // whole, not walked from a root that may be gone. What the command wrote until now is the account of
+            // why it did not finish, so it goes into the failure rather than being thrown away with the pipes.
             tree.Kill();
             Observe(standardOutput.Completion);
             Observe(standardError.Completion);
+            // A TimeoutException, like every step's own account of its deadline, so it is filed as the step's timeout.
+            throw new TimeoutException(
+                $"The command '{commandLine}' was still running when the step's {context.Deadline.Total} ran out, and was stopped."
+                + Partial(standardOutput.Text, standardError.Text));
+        }
+        catch (OperationCanceledException)
+        {
+            tree.Kill();
+            Observe(standardOutput.Completion);
+            Observe(standardError.Completion);
+            LogStreams(context, standardOutput.Text, standardError.Text);
             throw;
         }
 
         string outStd = standardOutput.Text;
         string errorStd = standardError.Text;
+        LogStreams(context, outStd, errorStd);
 
-        if (!String.IsNullOrWhiteSpace(outStd)) context.Logger.LogInformation(outStd);
-        if (!String.IsNullOrWhiteSpace(errorStd)) context.Logger.LogWarning("[External stderr]\n" + errorStd);
-
-        return new CmdResultContext(process.ExitCode, outStd, errorStd, cmdText, workingDir);
+        return new CmdResultContext(process.ExitCode, outStd, errorStd, commandLine, workingDir);
     }
+
+    private string ResolveWorkingDirectory(RunContext context)
+    {
+        string? configuredWorkingDir = workingDirectory?.GetValue(context.Variables);
+        string workingDir = configuredWorkingDir is null
+            ? LocalPath.TryGetRunDirectory(context.Variables) ?? Environment.CurrentDirectory
+            : LocalPath.Resolve(configuredWorkingDir, context.Variables);
+
+        // Checked by name: left to the process, a missing directory surfaces as a Win32Exception that names
+        // neither the directory nor the command.
+        if (!Directory.Exists(workingDir))
+        {
+            throw new FrameworkConfigurationException($"The command's working directory '{workingDir}' does not exist.")
+            {
+                RecoverySteps =
+                [
+                    "Create the directory in an earlier step, or point the command at one that exists.",
+                    "A relative directory resolves against the run directory when the timeline declared one (UseRunDirectory), otherwise against the process working directory.",
+                ],
+            };
+        }
+
+        return workingDir;
+    }
+
+    private static string Required(VariableReference<string> reference, string what, RunContext context)
+        => reference.GetValue(context.Variables)
+            ?? throw new FrameworkStateException($"The {what} of the command resolved to null.");
+
+    private static ProcessStartInfo ShellStart(string cmdText, string workingDir)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return new ProcessStartInfo
+            {
+                // The shell Windows itself names, not whatever "cmd.exe" a PATH entry finds first.
+                FileName = Environment.GetEnvironmentVariable("ComSpec") ?? Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                // Intentionally NOT ArgumentList: CMD.EXE /C consumes the raw remainder of the
+                // command line. Going through ArgumentList would quote anything containing a
+                // space and break operators such as &&, > and 1>&2.
+                Arguments = "/C " + cmdText,
+                UseShellExecute = false,
+                WorkingDirectory = workingDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+        }
+
+        // Prefer bash if available, otherwise fall back to sh
+        string shell = File.Exists("/bin/bash") ? "/bin/bash" : "/bin/sh";
+
+        // The whole command must arrive as ONE argv entry. Assigning it to Arguments would
+        // tokenize it, so "echo hello > out.txt" would run bare "echo" with $0 = "hello".
+        return UnixStart(shell, ["-c", cmdText], workingDir);
+    }
+
+    private static ProcessStartInfo DirectStart(string fileName, IReadOnlyList<string> args, string workingDir)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            ProcessStartInfo info = new ProcessStartInfo
+            {
+                FileName = fileName,
+                UseShellExecute = false,
+                WorkingDirectory = workingDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            foreach (string argument in args)
+                info.ArgumentList.Add(argument);
+
+            return info;
+        }
+
+        return UnixStart(fileName, args, workingDir);
+    }
+
+    // Through setsid where there is one, so the process leads a group its children stay in, and the group can be
+    // stopped after the process itself has exited.
+    private static ProcessStartInfo UnixStart(string fileName, IReadOnlyList<string> args, string workingDir)
+    {
+        ProcessStartInfo info = new ProcessStartInfo
+        {
+            FileName = CommandProcessTree.SetSid ?? fileName,
+            UseShellExecute = false,
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        if (CommandProcessTree.SetSid is not null)
+            info.ArgumentList.Add(fileName);
+
+        foreach (string argument in args)
+            info.ArgumentList.Add(argument);
+
+        return info;
+    }
+
+    private static Process Start(ProcessStartInfo info, string commandLine, string workingDir)
+    {
+        try
+        {
+            return Process.Start(info) ?? throw new FrameworkStateException($"The command '{commandLine}' could not be started.");
+        }
+        catch (Win32Exception exception)
+        {
+            throw new FrameworkConfigurationException(
+                $"The command '{commandLine}' could not be started in '{workingDir}': {exception.Message}", exception)
+            {
+                RecoverySteps = ["Check that the program exists and is on PATH, or give its full path."],
+            };
+        }
+    }
+
+    // What the result and the messages call the command: the line as given for a shell command, and the program
+    // with its arguments - quoted where a reader would otherwise misread them - for one started directly.
+    private string Describe(ProcessStartInfo info)
+    {
+        if (program is null)
+            return info.ArgumentList.Count > 0 ? info.ArgumentList[^1] : info.Arguments["/C ".Length..];
+
+        IEnumerable<string> parts = info.ArgumentList.Count > 0 && CommandProcessTree.SetSid is not null && !OperatingSystem.IsWindows()
+            ? info.ArgumentList
+            : [info.FileName, .. info.ArgumentList];
+
+        return string.Join(" ", parts.Select(Quote));
+
+        static string Quote(string part)
+            => part.Length > 0 && !part.Any(character => char.IsWhiteSpace(character) || character == '"')
+                ? part
+                : "\"" + part.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+    }
+
+    private static void LogStreams(RunContext context, string outStd, string errorStd)
+    {
+        if (!string.IsNullOrWhiteSpace(outStd)) context.Logger.LogInformation(Tail(outStd));
+        if (!string.IsNullOrWhiteSpace(errorStd)) context.Logger.LogWarning("[External stderr]\n" + Tail(errorStd));
+    }
+
+    private static string Partial(string outStd, string errorStd)
+    {
+        string partial = string.Empty;
+        if (!string.IsNullOrWhiteSpace(outStd)) partial += $"\nIt had written to stdout:\n{Tail(outStd)}";
+        if (!string.IsNullOrWhiteSpace(errorStd)) partial += $"\nIt had written to stderr:\n{Tail(errorStd)}";
+
+        return partial.Length == 0 ? "\nIt had written nothing." : partial;
+    }
+
+    private static string Tail(string text)
+        => text.Length <= LogTail
+            ? text
+            : $"[last {LogTail} of {text.Length} characters]\n{text[^LogTail..]}";
 
     /// <summary>
     /// How long the pipes may stay open after the shell has exited.
@@ -194,6 +344,9 @@ public class CmdTrigger : Step<CmdResultContext>
     public override void DeclareIO(StepIOContract contract)
     {
         contract.Input(command);
+        contract.Input(program);
+        foreach (VariableReference<string> argument in arguments)
+            contract.Input(argument);
         contract.Input(workingDirectory);
     }
 }

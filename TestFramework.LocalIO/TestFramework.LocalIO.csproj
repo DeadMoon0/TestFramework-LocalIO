@@ -16,12 +16,18 @@
 		<PackageTags>Test;UnitTest;IntegrationTest;Framework;Fluent;Timeline;Local;IO</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Copyright>Copyright (c) DeadMoon0 2026</Copyright>
-		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty: pass LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty() instead. Steps and file references are built only through LocalIOExt and UseRunDirectory, so their constructors are internal. FileArtifactData.Data is removed; read Content. A command that exits while something it started still holds its output now finishes with what it wrote, and what it started is stopped with the step instead of outliving the run.</PackageReleaseNotes>
+		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty: pass LocalIOExt.Artifacts.FileRef(path).RemoveParentDirectoryIfEmpty() instead. Steps and file references are built only through LocalIOExt and UseRunDirectory, so their constructors are internal. FileArtifactData.Data is removed; read Content, which is now a copy of the bytes it was given. New: Exec and ExecIn start a program with no shell, so run values stay values; Cmd inserts them verbatim. A command that exits while something it started still holds its output now finishes with what it wrote, and what it started is stopped with the step instead of outliving the run. Captured output is capped at 1 MiB per stream, a timed-out command reports what it had written, and a missing working directory or program is named.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<PackageIconSourcePath>$(MSBuildThisFileDirectory)..\Modules\TestFramework-Common\Assets\Icon.png</PackageIconSourcePath>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>TestFramework.LocalIO.Tests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="$(PackageIconSourcePath)">

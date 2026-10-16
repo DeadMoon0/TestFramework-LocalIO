@@ -62,27 +62,65 @@ public sealed class LocalIOTrigger
     }
 
     /// <summary>
-    /// Creates a command trigger that runs in the LocalIO run directory, or - when the timeline
+    /// Creates a command trigger that runs a shell line in the LocalIO run directory, or - when the timeline
     /// declared none - in the current working directory as it is at run time.
     /// </summary>
     /// <param name="command">The shell command to execute.</param>
     /// <returns>A command trigger.</returns>
-    /// <remarks>On Windows this uses <c>CMD.EXE /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to <c>/bin/sh -c</c>.</remarks>
+    /// <remarks>
+    /// On Windows this uses <c>%ComSpec% /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to
+    /// <c>/bin/sh -c</c>. The line is inserted verbatim, so a run value inside it is shell syntax - quotes, <c>&amp;&amp;</c>,
+    /// redirections and all. To pass values as values, use <see cref="Exec(VariableReference{string}, VariableReference{string}[])"/>.
+    /// </remarks>
     public CmdTrigger Cmd(VariableReference<string> command)
     {
-        return new CmdTrigger(command, null);
+        return CmdTrigger.Shell(command, null);
     }
 
     /// <summary>
-    /// Creates a command trigger that runs in the specified working directory.
+    /// Creates a command trigger that runs a shell line in the specified working directory.
     /// </summary>
     /// <param name="command">The shell command to execute.</param>
     /// <param name="workingDirectory">The working directory for the command.</param>
     /// <returns>A command trigger.</returns>
-    /// <remarks>On Windows this uses <c>CMD.EXE /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to <c>/bin/sh -c</c>.</remarks>
+    /// <remarks>
+    /// On Windows this uses <c>%ComSpec% /C</c>. On Unix-like systems it prefers <c>/bin/bash -c</c> and falls back to
+    /// <c>/bin/sh -c</c>. The line is inserted verbatim, so a run value inside it is shell syntax. To pass values as
+    /// values, use <see cref="ExecIn(VariableReference{string}, VariableReference{string}, VariableReference{string}[])"/>.
+    /// </remarks>
     public CmdTrigger Cmd(VariableReference<string> command, VariableReference<string> workingDirectory)
     {
-        return new CmdTrigger(command, workingDirectory);
+        return CmdTrigger.Shell(command, workingDirectory);
+    }
+
+    /// <summary>
+    /// Creates a trigger that starts a program directly, with no shell, in the LocalIO run directory - or, when the
+    /// timeline declared none, in the current working directory as it is at run time.
+    /// </summary>
+    /// <param name="program">The program to start: a name found on PATH, or a path.</param>
+    /// <param name="arguments">Its arguments, each passed as one argument whatever it contains.</param>
+    /// <returns>A command trigger.</returns>
+    /// <remarks>
+    /// Nothing is parsed: a value with spaces, quotes or <c>&amp;&amp;</c> in it reaches the program exactly as it is,
+    /// which is what makes this the form for run values. Shell features - pipes, redirections, built-ins - need
+    /// <see cref="Cmd(VariableReference{string})"/>.
+    /// </remarks>
+    public CmdTrigger Exec(VariableReference<string> program, params VariableReference<string>[] arguments)
+    {
+        return CmdTrigger.Direct(program, arguments, null);
+    }
+
+    /// <summary>
+    /// Creates a trigger that starts a program directly, with no shell, in the specified working directory.
+    /// </summary>
+    /// <param name="workingDirectory">The working directory for the program.</param>
+    /// <param name="program">The program to start: a name found on PATH, or a path.</param>
+    /// <param name="arguments">Its arguments, each passed as one argument whatever it contains.</param>
+    /// <returns>A command trigger.</returns>
+    /// <remarks>The working directory comes first because the arguments take every value after the program.</remarks>
+    public CmdTrigger ExecIn(VariableReference<string> workingDirectory, VariableReference<string> program, params VariableReference<string>[] arguments)
+    {
+        return CmdTrigger.Direct(program, arguments, workingDirectory);
     }
 }
 

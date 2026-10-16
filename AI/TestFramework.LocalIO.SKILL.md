@@ -49,10 +49,13 @@
 
 <runtime_behavior>
     Important runtime facts:
-    - Cmd(...) runs through CMD.EXE /C on Windows and through /bin/bash -c (falling back to /bin/sh -c) on Unix-like hosts, and returns an exit code instead of throwing on non-zero process exit.
-    - Cmd(...) captures stdout and stderr into CmdResultContext; the six binding verbs project them into timeline variables.
+    - Cmd(...) runs through %ComSpec% /C on Windows and through /bin/bash -c (falling back to /bin/sh -c) on Unix-like hosts, and returns an exit code instead of throwing on non-zero process exit. It inserts every value verbatim, so a run value inside the line is shell syntax.
+    - Exec(program, args...) and ExecIn(workingDirectory, program, args...) start a program directly, with no shell; each argument reaches the program as exactly one argument. Use them whenever a run value goes on the command line.
+    - Cmd(...) and Exec(...) capture stdout and stderr into CmdResultContext; the six binding verbs project them into timeline variables. Each stream keeps its last 1 MiB of text, with a leading line counting what was dropped; the log shows the last 8 KiB.
     - Both output pipes are drained concurrently, so commands that produce more than a pipe buffer of output do not deadlock.
-    - A cancelled or timed-out command has its whole process tree killed, so it cannot keep writing files after the run ended.
+    - A cancelled or timed-out command is stopped together with every process still attached to it. A process it detached on purpose (setsid, nohup ... &, start) is not stopped.
+    - A timed-out command fails with a TimeoutException that includes the tail of what it had written to stdout and stderr.
+    - A missing working directory, or a program that cannot be started, fails with a FrameworkConfigurationException naming the directory and the command.
     - Without an explicit working directory a command runs in the run directory when the timeline declared one, otherwise in the process working directory as it is at run time.
     - FileExists(...) is a polling event with a default poll delay of 500 ms; on timeout it reports the resolved path it was watching.
     - File artifacts have describers, references, and data objects just like other Core artifacts.
