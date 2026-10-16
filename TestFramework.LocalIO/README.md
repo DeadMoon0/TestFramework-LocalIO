@@ -79,7 +79,7 @@ directory - give `AddFileArtifact(...)` a fully qualified path.
 
 ## Typical Scenarios
 
-- `LocalIOExt.Trigger.Cmd(...)` to execute a shell command and return its exit code
+- `LocalIOExt.Trigger.Cmd(...)` to execute a shell command, and `Exec(...)` to start a program with no shell; both return a `CmdResultContext` with the exit code and the captured output
 - `LocalIOExt.Events.FileExists(...)` to wait until a file appears
 - `AddFileArtifact(...)` and `GetFileArtifact(...)` to inject and inspect file artifacts during a run
 
@@ -113,13 +113,13 @@ Use file artifacts only when the system under test already communicates through 
 
 ## Command Behavior (cross-platform)
 
-- `LocalIOExt.Trigger.Cmd(...)` executes a shell command and returns the external process exit code as the step result.
+- `LocalIOExt.Trigger.Cmd(...)` executes a shell command; its step result is a `CmdResultContext` holding the exit code, stdout, stderr, the command and the working directory.
 - `Cmd` inserts every value verbatim: a run value inside the line is shell syntax. When a value goes on the command line, use `LocalIOExt.Trigger.Exec(program, args...)` (or `ExecIn(workingDirectory, program, args...)`), which starts the program with no shell and passes each argument as exactly one argument.
 - Each output stream keeps its last 1 MiB of text, led by a line counting anything dropped; the run's log shows the last 8 KiB. A command that times out fails with a `TimeoutException` carrying the tail of what it had written.
 - On Windows this uses `%ComSpec% /C <cmd>`.
 - On Unix-like systems it prefers `/bin/bash -c <cmd>` if `bash` is available, otherwise `/bin/sh -c <cmd>` is used as a fallback.
 - Treat this as shell-compatible behavior rather than shell-identical behavior: quoting, built-in commands, and environment expansion can still differ between Windows and Unix-like systems.
-- The trigger returns the external process exit code as its step result. Non-zero exit codes are not rewritten; assert on them explicitly when failure is expected.
+- A non-zero exit code is reported, not turned into a failure; assert on `ExitCode` explicitly when failure is expected.
 - For long-running commands, prefer timeline timeouts such as `.WithTimeout(...)` so the run cancels the command instead of hanging indefinitely.
 - When the command writes files that later steps consume, prefer a dedicated working directory so the file polling event and file artifact reference both point at a predictable location.
 
@@ -188,7 +188,7 @@ Use sorting, stable naming, or explicit projection keys before asserting counts 
 ## Additional Guidance
 
 - `FileArtifactFolderFinder.FindMultiAsync(...)` returns files in the order reported by `Directory.EnumerateFiles(...)`; do not depend on that order as a stable business rule.
-- See the showroom/basic examples in this repository when you want a larger end-to-end usage pattern around file artifacts and timeline runs.
+- The TestFramework-Showroom repository's Basic chapters (variables, artifacts, events) use LocalIO end to end.
 
 ## Target Frameworks
 

@@ -110,7 +110,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
 
     private string ResolvePath(VariableStore variableStore)
     {
-        string raw = path.GetValue(variableStore) ?? throw new FrameworkStateException("The path to a file cannot be null.");
+        string raw = path.GetRequiredValue(variableStore, "A file artifact is the file this path names.");
         return LocalPath.Resolve(raw, variableStore);
     }
 

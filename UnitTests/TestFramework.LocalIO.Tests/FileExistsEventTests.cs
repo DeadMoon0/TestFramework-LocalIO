@@ -57,7 +57,7 @@ public class FileExistsEventTests
             .RunAsync();
 
         TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
-        Assert.Contains(exception.FailedSteps, step => step.StepException is ArgumentNullException);
+        Assert.Contains(exception.FailedSteps, step => step.StepException?.Message.Contains("Variable 'path' resolved to null", StringComparison.Ordinal) == true);
     }
 
     [Fact]
@@ -90,9 +90,7 @@ public class FileExistsEventTests
     }
 
     [WindowsFact]
-    [Trait("Category", "WindowsOnly")]
-    [SupportedOSPlatform("windows")]
-    public void LocalIOCmdFactory_UsesCurrentDirectoryAsDefaultWorkingDirectoryDeclaration()
+    public void ACommandWithoutAWorkingDirectory_DeclaresOnlyItsCommand()
     {
         CmdTrigger trigger = LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"));
         StepIOContract contract = new();

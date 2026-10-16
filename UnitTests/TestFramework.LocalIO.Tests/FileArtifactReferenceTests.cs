@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TestFramework.Core.Artifacts;
+using TestFramework.Core.Steps;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
 using TestFramework.LocalIO.Artifacts;
@@ -12,6 +13,23 @@ namespace TestFramework.LocalIO.Tests;
 
 public class FileArtifactReferenceTests
 {
+    [Fact]
+    public void DiscoveredFiles_AreTheUnbrokenRunFromZero_NotEveryArtifactWithTheSuffix()
+    {
+        // Discovery names its finds exports_0, exports_1, ...; an artifact of the author's own called exports_5
+        // is not one of them.
+        RunContext context = RunContext.Detached();
+        foreach (string identifier in new[] { "exports_0", "exports_1", "exports_5" })
+        {
+            context.Artifacts.Add<FileArtifactDescriber, FileArtifactData, FileArtifactReference>(
+                identifier, LocalIOExt.Artifacts.FileRef(Var.Const(identifier + ".txt")), new FileArtifactData([1]));
+        }
+
+        IReadOnlyList<string> found = [.. context.Artifacts.GetFileArtifacts("exports").Select(instance => instance.Identifier.Identifier)];
+
+        Assert.Equal(["exports_0", "exports_1"], found);
+    }
+
     [Fact]
     public async Task Deconstruct_DeletesThePinnedFile_EvenWhenThePathVariableIsReboundMidRun()
     {

@@ -1,6 +1,6 @@
 # TestFramework-LocalIO - arc42 Architecture Documentation
 
-> Date: 2026-04-20
+> Date: 2026-10-16
 
 ## 1. Introduction and Goals
 
@@ -33,7 +33,7 @@ Relevant collaborators:
 - `TestFramework.Core`: provides timeline execution, stores, assertions, and step/event base classes
 - test authors: compose local steps and events through `LocalIOExt.Trigger`, `LocalIOExt.Events`, and `LocalIOExt.Artifacts`
 - local operating system: executes commands, exposes file system state, and stores file contents
-- showroom/examples: demonstrate how LocalIO concepts fit into broader timeline flows
+- TestFramework-Showroom: its Basic chapters show LocalIO inside broader timeline flows
 
 The scope is intentionally narrow: local command execution, file existence polling, file artifact references, and folder-based artifact discovery.
 
@@ -54,7 +54,7 @@ Key strategy decisions:
 Main building blocks:
 
 - `LocalIOExt`: public facade exposing `Trigger`, `Events`, and `Artifacts`
-- `CmdTrigger`: executes a shell command and returns the exit code as the step result
+- `CmdTrigger`: runs a shell line (`Cmd`) or a program with no shell (`Exec`) and returns a `CmdResultContext` - exit code, captured output, command, working directory
 - `FileExistsEvent`: polling event that completes when a path exists and optionally uses a caller-provided poll delay
 - `FileArtifactReference`, `FileArtifactData`, `FileArtifactDescriber`, `FileArtifactKind`: typed file artifact model
 - `FileArtifactFolderFinder`: resolves one or many file artifacts from a directory at runtime
@@ -68,7 +68,7 @@ This yields a small package with one public vertical slice for triggers/events a
 Typical runtime scenarios:
 
 1. Command execution
-	 A timeline triggers `LocalIOExt.Trigger.Cmd(...)`. During execution the step launches `CMD.EXE /C ...` on Windows or a `bash`/`sh` shell on Unix-like hosts, streams stdout/stderr into the framework logger, and returns the process exit code.
+	 A timeline triggers `LocalIOExt.Trigger.Cmd(...)` or `Exec(...)`. `Cmd` launches `%ComSpec% /C ...` on Windows or a `bash`/`sh` shell on Unix-like hosts; `Exec` starts the program directly. Both drain stdout/stderr concurrently into a capture bounded at 1 MiB per stream, log the tail, and return a `CmdResultContext`. A command that runs out of time is stopped with everything still attached to it and reports what it had written.
 
 2. File-based synchronization
 	 A timeline waits for `LocalIOExt.Events.FileExists(...)`. The event polls until the file appears or the timeline timeout is reached.
@@ -126,7 +126,6 @@ There is no service deployment unit. Operational deployment concerns are limited
 ## 11. Risks and Technical Debt
 
 - Shell differences remain a real risk: command text that is valid on one host shell may need adaptation on another
-- Documentation lag: package README still contains older package/namespace forms and should be aligned with the current public API
 - Narrow event coverage: only file existence polling is currently modeled; richer file-system event support is not yet present
 - Environment sensitivity: local tests can become brittle if they rely on machine-specific paths, shell state, or permissions
 - Limited automated coverage breadth: unit tests exist, but there is no broader multi-platform or full sample-suite validation pipeline yet

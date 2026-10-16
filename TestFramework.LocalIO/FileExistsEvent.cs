@@ -108,7 +108,7 @@ public class FileExistsEvent : SequentialEvent<FileExistsEvent, EmptyStepResultC
 
     private string ResolvePath(VariableStore variableStore)
     {
-        string raw = path.GetValue(variableStore) ?? throw new ArgumentNullException(nameof(path), "The Path cannot be Null.");
+        string raw = path.GetRequiredValue(variableStore, "FileExists watches the file this path names.");
         return LocalPath.Resolve(raw, variableStore);
     }
 

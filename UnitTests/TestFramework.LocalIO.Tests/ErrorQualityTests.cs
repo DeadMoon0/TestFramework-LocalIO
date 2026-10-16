@@ -105,7 +105,7 @@ public class ErrorQualityTests
     }
 
     [Fact]
-    public async Task ResolveToData_WithANullPath_ThrowsAFrameworkStateExceptionWithARealMessage()
+    public async Task ResolveToData_WithANullPath_NamesTheVariableThatWasNull()
     {
         Timeline timeline = Timeline.Create()
             .RegisterArtifact("file", LocalIOExt.Artifacts.FileRef(Var.Ref<string>("path")))
@@ -116,9 +116,9 @@ public class ErrorQualityTests
             .RunAsync();
 
         TimelineRunFailedException exception = Assert.Throws<TimelineRunFailedException>(() => run.EnsureRanToCompletion());
+        // The same sentence FileExists and Cmd give for a null value: the message is the contract, not the type.
         Assert.Contains(exception.FailedSteps, step =>
-            step.StepException is FrameworkStateException frameworkStateException
-            && frameworkStateException.Message.Contains("path to a file cannot be null", StringComparison.OrdinalIgnoreCase));
+            step.StepException?.Message.Contains("Variable 'path' resolved to null", StringComparison.Ordinal) == true);
     }
 
     private static string CreateTempDirectory()

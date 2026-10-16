@@ -35,20 +35,31 @@ public static class FileArtifactExtension
     /// <param name="baseIdentifier">The base identifier passed to <c>FindArtifacts</c>.</param>
     /// <returns>The <c>baseIdentifier_0</c>, <c>baseIdentifier_1</c>, ... instances, ordered by index.</returns>
     /// <remarks>
+    /// <para>
     /// Discovery generates the identifiers by appending <c>_0</c>, <c>_1</c>, ... to the base
     /// identifier. The index order is the discovery order, which is filesystem-dependent - sort by
     /// <see cref="FileArtifactReference.FilePath"/> when the assertion needs a deterministic order.
+    /// </para>
+    /// <para>
+    /// Only the unbroken run from <c>_0</c> is returned, because that is the shape discovery produces. An
+    /// artifact of your own that happens to be named <c>baseIdentifier_7</c> after three discovered files is
+    /// not one of them, and used to be returned as if it were.
+    /// </para>
     /// </remarks>
-    public static IReadOnlyList<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> GetFileArtifacts(this ArtifactStore store, string baseIdentifier)
+    public static IReadOnlyList<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> GetFileArtifacts(this ArtifactStore store, ArtifactIdentifier baseIdentifier)
     {
-        string prefix = baseIdentifier + "_";
-        return store.GetAll()
-            .Select(instance => instance.Identifier.Identifier)
-            .Where(identifier => identifier.StartsWith(prefix, StringComparison.Ordinal)
-                && int.TryParse(identifier.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out _))
-            .OrderBy(identifier => int.Parse(identifier[prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture))
-            .Select(identifier => store.GetFileArtifact(identifier))
-            .ToList();
+        ArgumentNullException.ThrowIfNull(baseIdentifier);
+
+        HashSet<string> held = [.. store.GetAll().Select(instance => instance.Identifier.Identifier)];
+        List<ArtifactInstance<FileArtifactDescriber, FileArtifactData, FileArtifactReference>> discovered = [];
+
+        for (int index = 0; held.Contains(Generated(baseIdentifier, index)); index++)
+            discovered.Add(store.GetFileArtifact(Generated(baseIdentifier, index)));
+
+        return discovered;
+
+        static string Generated(ArtifactIdentifier baseIdentifier, int index)
+            => baseIdentifier.Identifier + "_" + index.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>

@@ -16,7 +16,8 @@ using TestFramework.Core.Variables;
 namespace TestFramework.LocalIO;
 
 /// <summary>
-/// Executes a command and returns the process exit code.
+/// Executes a command and returns a <see cref="CmdResultContext"/>: its exit code, what it wrote, the command and
+/// where it ran.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -69,8 +70,8 @@ public class CmdTrigger : Step<CmdResultContext>
 
     /// <inheritdoc />
     public override string Description => program is null
-        ? "A trigger that executes a shell command and returns the process exit code."
-        : "A trigger that starts a program with its arguments, no shell, and returns the process exit code.";
+        ? "A trigger that executes a shell command and returns its exit code and output."
+        : "A trigger that starts a program with its arguments, no shell, and returns its exit code and output.";
 
     /// <inheritdoc />
     public override Step<CmdResultContext> Clone()
@@ -155,8 +156,7 @@ public class CmdTrigger : Step<CmdResultContext>
     }
 
     private static string Required(VariableReference<string> reference, string what, RunContext context)
-        => reference.GetValue(context.Variables)
-            ?? throw new FrameworkStateException($"The {what} of the command resolved to null.");
+        => reference.GetRequiredValue(context.Variables, $"The command needs its {what}.");
 
     private static ProcessStartInfo ShellStart(string cmdText, string workingDir)
     {
