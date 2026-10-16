@@ -13,16 +13,26 @@ namespace TestFramework.LocalIO.Tests;
 public class FileArtifactDataTests
 {
     [Fact]
-    public void Content_HandsOutTheUnderlyingBuffer_WithoutCopying()
+    public void RecordedContent_DoesNotChangeWhenTheCallersArrayDoes()
     {
+        // A version is evidence of what the file held; a caller reusing its buffer must not rewrite it.
         byte[] bytes = [1, 2, 3, 4];
         FileArtifactData data = new(bytes);
+
+        bytes[0] = 99;
+
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, data.Content.ToArray());
+    }
+
+    [Fact]
+    public void Content_IsReadWithoutCopyingAgain()
+    {
+        FileArtifactData data = new([1, 2, 3, 4]);
 
         Assert.True(MemoryMarshal.TryGetArray(data.Content, out ArraySegment<byte> first));
         Assert.True(MemoryMarshal.TryGetArray(data.Content, out ArraySegment<byte> second));
 
-        Assert.Same(bytes, first.Array);
-        Assert.Same(bytes, second.Array);
+        Assert.Same(first.Array, second.Array);
     }
 
     [Fact]
