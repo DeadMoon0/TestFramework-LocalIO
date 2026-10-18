@@ -134,7 +134,7 @@ public class RefusalTests
 
     private static string CreateTempDirectory()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"localio-audit-{Guid.NewGuid():N}");
+        string path = Path.Combine(Path.GetTempPath(), $"localio-refusal-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
     }

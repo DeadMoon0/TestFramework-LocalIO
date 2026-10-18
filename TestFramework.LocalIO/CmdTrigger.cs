@@ -107,17 +107,20 @@ public class CmdTrigger : Step<CmdResultContext>
             // The shell may have exited already, with what it started still running: the tree is stopped as a
             // whole, not walked from a root that may be gone. What the command wrote until now is the account of
             // why it did not finish, so it goes into the failure rather than being thrown away with the pipes.
-            tree.Kill();
+            bool stopped = tree.Kill();
             Observe(standardOutput.Completion);
             Observe(standardError.Completion);
             // A TimeoutException, like every step's own account of its deadline, so it is filed as the step's timeout.
             throw new TimeoutException(
-                $"The command '{commandLine}' was still running when the step's {context.Deadline.Total} ran out, and was stopped."
+                $"The command '{commandLine}' was still running when the step's {context.Deadline.Total} ran out, "
+                + (stopped ? "and was stopped." : "and could not be stopped from here: something it started may still be running.")
                 + Partial(standardOutput.Text, standardError.Text));
         }
         catch (OperationCanceledException)
         {
-            tree.Kill();
+            if (!tree.Kill())
+                context.Logger.LogWarning($"The command '{commandLine}' was cancelled and could not be stopped from here: something it started may still be running.");
+
             Observe(standardOutput.Completion);
             Observe(standardError.Completion);
             LogStreams(context, standardOutput.Text, standardError.Text);
@@ -314,11 +317,12 @@ public class CmdTrigger : Step<CmdResultContext>
 
         context.Deadline.Token.ThrowIfCancellationRequested();
 
+        bool stopped = tree.Kill();
         context.Logger.LogWarning(
             $"The command exited, and something it started was still holding its output {PipeGrace.TotalSeconds:0} s later. "
-            + "It was stopped, and the output written until then is the step's result. Redirect a process meant to keep running (> file 2>&1).");
+            + (stopped ? "It was stopped" : "It could not be stopped from here and may still be running")
+            + ", and the output written until then is the step's result. Redirect a process meant to keep running (> file 2>&1).");
 
-        tree.Kill();
         await drain.CancelAsync();
         Observe(standardOutput.Completion);
         Observe(standardError.Completion);

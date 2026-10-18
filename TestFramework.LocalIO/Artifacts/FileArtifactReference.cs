@@ -70,7 +70,7 @@ public class FileArtifactReference : ArtifactReference<FileArtifactReference, Fi
         {
             Found = true,
             // On the run's deadline: a stalled network share must stop the read when the step stops.
-            Data = new FileArtifactData(await File.ReadAllBytesAsync(_path, context.Deadline.Token).ConfigureAwait(false)) { Identifier = versionIdentifier },
+            Data = new FileArtifactData(new OwnedBytes(await File.ReadAllBytesAsync(_path, context.Deadline.Token).ConfigureAwait(false))) { Identifier = versionIdentifier },
         };
     }
 

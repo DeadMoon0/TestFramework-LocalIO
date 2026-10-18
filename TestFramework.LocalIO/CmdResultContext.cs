@@ -22,7 +22,7 @@ public sealed record CmdResultContext : StepResultContext
     }
 
     /// <summary>
-    /// The shell process exit code.
+    /// The exit code of the process that was started: the shell for <c>Cmd</c>, the program itself for <c>Exec</c>.
     /// </summary>
     public int ExitCode { get; internal init; }
 
@@ -37,7 +37,7 @@ public sealed record CmdResultContext : StepResultContext
     public string StandardError { get; internal init; }
 
     /// <summary>
-    /// The resolved shell command that was executed.
+    /// The command line as it ran: the shell line for <c>Cmd</c>, the program and its arguments for <c>Exec</c>.
     /// </summary>
     public string Command { get; internal init; }
 

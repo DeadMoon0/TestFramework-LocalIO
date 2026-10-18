@@ -34,7 +34,8 @@
 <api_hints>
     Important APIs and shapes from the docs:
     - timeline.UseRunDirectory() and UseRunDirectory(root)
-    - LocalIOExt.Trigger.Cmd(command) and Cmd(command, workingDirectory)
+    - LocalIOExt.Trigger.Cmd(command) and Cmd(command, workingDirectory): a shell line, values inserted verbatim
+    - LocalIOExt.Trigger.Exec(program, args) and ExecIn(workingDirectory, program, args): a program with no shell, values passed as arguments
     - LocalIOExt.Events.FileExists(path) and FileExists(path, pollDelay)
     - LocalIOExt.Artifacts.FileRef(path), plus .RemoveParentDirectoryIfEmpty()
     - MarkReadonly() on the FindArtifact/FindArtifacts/RegisterArtifact call is the protection to reach for
@@ -53,7 +54,7 @@
     - Exec(program, args...) and ExecIn(workingDirectory, program, args...) start a program directly, with no shell; each argument reaches the program as exactly one argument. Use them whenever a run value goes on the command line.
     - Cmd(...) and Exec(...) capture stdout and stderr into CmdResultContext; the six binding verbs project them into timeline variables. Each stream keeps its last 1 MiB of text, with a leading line counting what was dropped; the log shows the last 8 KiB.
     - Both output pipes are drained concurrently, so commands that produce more than a pipe buffer of output do not deadlock.
-    - A cancelled or timed-out command is stopped together with every process still attached to it. A process it detached on purpose (setsid, nohup ... &, start) is not stopped.
+    - A cancelled or timed-out command is stopped together with everything it started, `start` and `nohup ... &` included: on Windows they share its job object, on Unix its process group. Only a process that left both on purpose (setsid, a breakaway job) survives. A child that redirected its own output is left alone when the command exits normally.
     - A timed-out command fails with a TimeoutException that includes the tail of what it had written to stdout and stderr.
     - A missing working directory, or a program that cannot be started, fails with a FrameworkConfigurationException naming the directory and the command.
     - Without an explicit working directory a command runs in the run directory when the timeline declared one, otherwise in the process working directory as it is at run time.
@@ -120,7 +121,7 @@
 <important_type_map>
     Common type map for discovery and error interpretation:
     - LocalIOExt: package facade for local machine triggers, events, and artifacts
-    - CmdTrigger: command execution step behind LocalIOExt.Trigger.Cmd(...)
+    - CmdTrigger: command execution step behind LocalIOExt.Trigger.Cmd(...), Exec(...) and ExecIn(...)
     - CmdResultContext: exit code, stdout, stderr, command, and working directory of a finished command
     - FileExistsEvent: polling event behind LocalIOExt.Events.FileExists(...)
     - RunDirectoryStep: the Prepare-phase step behind UseRunDirectory() that also cleans the directory up

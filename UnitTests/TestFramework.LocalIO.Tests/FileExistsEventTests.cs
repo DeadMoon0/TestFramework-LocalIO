@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Runtime.Versioning;
 using TestFramework.Core.Exceptions;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Steps.Options;
@@ -88,24 +87,4 @@ public class FileExistsEventTests
                 Assert.Equal(typeof(TimeSpan), entry.DeclaredType);
             });
     }
-
-    [WindowsFact]
-    public void ACommandWithoutAWorkingDirectory_DeclaresOnlyItsCommand()
-    {
-        CmdTrigger trigger = LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"));
-        StepIOContract contract = new();
-
-        trigger.DeclareIO(contract);
-
-        Assert.Collection(
-            contract.Inputs,
-            entry =>
-            {
-                Assert.Equal("cmd", entry.Key);
-                Assert.Equal(StepIOKind.Variable, entry.Kind);
-                Assert.True(entry.Required);
-                Assert.Equal(typeof(string), entry.DeclaredType);
-            });
-    }
-
 }

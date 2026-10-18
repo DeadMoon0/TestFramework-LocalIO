@@ -19,9 +19,6 @@
 		<PackageReleaseNotes>BREAKING - needs TestFramework.Core 0.7.0. AddFileArtifact no longer takes removeParentDirectoryIfEmpty (use FileRef(path).RemoveParentDirectoryIfEmpty()), FileArtifactData.Data is gone (read Content), and steps are built only through LocalIOExt and UseRunDirectory; a second UseRunDirectory is refused while the run is planned. New: Exec and ExecIn start a program with no shell, so run values stay values; Cmd inserts them verbatim. Commands keep at most 1 MiB per stream, report what they wrote when they time out, and finish when they exit even if something they started still holds the output.</PackageReleaseNotes>
 	</PropertyGroup>
 
-	<PropertyGroup>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 			<_Parameter1>TestFramework.LocalIO.Tests</_Parameter1>
@@ -35,12 +32,6 @@
 		</None>
 	</ItemGroup>
 
-	<!--
-	  The package icon lives in the TestFramework-Common submodule. A clone that skips submodules
-	  leaves it empty, and pack then fails with NuGet's opaque "icon file does not exist in the
-	  package" / "Could not find a part of the path" error, which never mentions submodules.
-	  Scoped to GenerateNuspec so ordinary builds and `dotnet test` stay unaffected.
-	-->
 	<ItemGroup>
 	  <PackageReference Include="TestFramework.Core" Version="0.7.0" />
 	</ItemGroup>

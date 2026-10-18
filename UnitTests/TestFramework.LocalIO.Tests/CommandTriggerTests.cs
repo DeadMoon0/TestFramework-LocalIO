@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TestFramework.Core.Exceptions;
+using TestFramework.Core.Steps.Options;
 using TestFramework.Core.Steps;
 using TestFramework.Core.Timelines;
 using TestFramework.Core.Variables;
@@ -152,5 +153,24 @@ public class CommandTriggerTests
         await capture.Completion;
 
         Assert.Equal("short", capture.Text);
+    }
+
+    [Fact]
+    public void ACommandWithoutAWorkingDirectory_DeclaresOnlyItsCommand()
+    {
+        CmdTrigger trigger = LocalIOExt.Trigger.Cmd(Var.Ref<string>("cmd"));
+        StepIOContract contract = new();
+
+        trigger.DeclareIO(contract);
+
+        Assert.Collection(
+            contract.Inputs,
+            entry =>
+            {
+                Assert.Equal("cmd", entry.Key);
+                Assert.Equal(StepIOKind.Variable, entry.Kind);
+                Assert.True(entry.Required);
+                Assert.Equal(typeof(string), entry.DeclaredType);
+            });
     }
 }

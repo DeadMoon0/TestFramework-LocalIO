@@ -162,7 +162,7 @@ Recommended pattern:
 
 - Missing files in `FileExists(...)` keep the event polling until the event-level or timeline-level timeout is reached.
 - Command startup failures surface as exceptions from the trigger execution.
-- When a timeline timeout cancels a running command, the resulting run failure currently surfaces through the canceled command step rather than as a distinct command-specific exit code.
+- A command that outlives its step's deadline fails the step with a `TimeoutException` that carries the tail of what it wrote (see above).
 - Service or test code should treat file-artifact finder ordering as filesystem-dependent. If order matters, sort resolved paths explicitly after collection.
 
 ## Deterministic Multi-File Assertions

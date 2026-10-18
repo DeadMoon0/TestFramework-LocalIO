@@ -28,6 +28,17 @@ public class FileArtifactData : ArtifactData<FileArtifactData, FileArtifactDescr
     }
 
     /// <summary>
+    /// Creates file content from bytes nobody else holds, without copying them.
+    /// </summary>
+    /// <param name="owned">The bytes, handed over.</param>
+    internal FileArtifactData(OwnedBytes owned)
+    {
+        ArgumentNullException.ThrowIfNull(owned.Bytes);
+
+        this.data = owned.Bytes;
+    }
+
+    /// <summary>
     /// Gets the raw file bytes, without copying them again; read-only, so they stay what was recorded.
     /// </summary>
     public ReadOnlyMemory<byte> Content => data;

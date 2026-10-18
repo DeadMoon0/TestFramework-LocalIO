@@ -90,7 +90,7 @@ public static class FileArtifactExtension
     {
         ArgumentNullException.ThrowIfNull(reference);
 
-        return run.AddArtifact(identifier, reference, new FileArtifactData(Encoding.UTF8.GetBytes(utf8text)));
+        return run.AddArtifact(identifier, reference, new FileArtifactData(new OwnedBytes(Encoding.UTF8.GetBytes(utf8text))));
     }
 
     /// <summary>

@@ -72,25 +72,30 @@ internal sealed class CommandProcessTree : IDisposable
     /// <summary>
     /// Stops the shell and everything it started, alive root or not.
     /// </summary>
-    public void Kill()
+    /// <returns>
+    /// Whether everything it started was stopped. Without a job or a process group only a still-running shell's
+    /// own tree can be reached, and a child whose shell already exited cannot.
+    /// </returns>
+    public bool Kill()
     {
         if (_job != IntPtr.Zero)
-        {
-            TerminateJobObject(_job, 1);
-            return;
-        }
+            return TerminateJobObject(_job, 1);
 
         if (_ownsGroup && KillProcessGroup(_shell.Id))
-            return;
+            return true;
 
         try
         {
-            if (!_shell.HasExited)
-                _shell.Kill(entireProcessTree: true);
+            if (_shell.HasExited)
+                return false;
+
+            _shell.Kill(entireProcessTree: true);
+            return true;
         }
         catch (Exception exception) when (exception is InvalidOperationException or Win32Exception or NotSupportedException)
         {
-            // Already gone, or not ours to kill; the caller reports what it could not stop.
+            // Already gone, or not ours to kill; the caller says what it could not stop.
+            return false;
         }
     }
 
