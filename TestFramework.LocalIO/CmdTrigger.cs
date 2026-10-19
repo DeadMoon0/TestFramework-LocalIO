@@ -232,19 +232,29 @@ public class CmdTrigger : Step<CmdResultContext>
 
     private static Process Start(ProcessStartInfo info, string commandLine, string workingDir)
     {
+        // Through setsid the program is setsid's argument, not the process started, so its absence would surface as
+        // setsid's exit code 127 rather than as a start failure: it is looked up first.
+        if (CommandProcessTree.SetSid is { } setSid && info.FileName == setSid && info.ArgumentList.Count > 0
+            && !ProgramLocation.CanBeFound(info.ArgumentList[0], workingDir, Environment.GetEnvironmentVariable("PATH")))
+        {
+            throw CouldNotStart(commandLine, workingDir, "no such file was found");
+        }
+
         try
         {
             return Process.Start(info) ?? throw new FrameworkStateException($"The command '{commandLine}' could not be started.");
         }
         catch (Win32Exception exception)
         {
-            throw new FrameworkConfigurationException(
-                $"The command '{commandLine}' could not be started in '{workingDir}': {exception.Message}", exception)
-            {
-                RecoverySteps = ["Check that the program exists and is on PATH, or give its full path."],
-            };
+            throw CouldNotStart(commandLine, workingDir, exception.Message, exception);
         }
     }
+
+    private static FrameworkConfigurationException CouldNotStart(string commandLine, string workingDir, string reason, Exception? inner = null)
+        => new($"The command '{commandLine}' could not be started in '{workingDir}': {reason}", inner)
+        {
+            RecoverySteps = ["Check that the program exists and is on PATH, or give its full path."],
+        };
 
     // What the result and the messages call the command: the line as given for a shell command, and the program
     // with its arguments - quoted where a reader would otherwise misread them - for one started directly.
